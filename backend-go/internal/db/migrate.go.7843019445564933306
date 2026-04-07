@@ -1,0 +1,22 @@
+package db
+
+import (
+	"log"
+
+	"gorm.io/gorm"
+
+	"vpn-bot/backend-go/internal/models"
+)
+
+func Migrate(database *gorm.DB) {
+	if err := database.AutoMigrate(
+		&models.User{},
+		&models.Plan{},
+		&models.Subscription{},
+		&models.Payment{},
+		&models.VPNKey{},
+	); err != nil {
+		log.Fatalf("db migrate failed: %v", err)
+	}
+}
+

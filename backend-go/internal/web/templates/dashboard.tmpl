@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f7fb; margin: 0; color: #1f2937; }
+        header { background: #111827; color: #fff; padding: 20px 32px; }
+        nav a { color: #dbeafe; margin-right: 16px; text-decoration: none; }
+        main { padding: 32px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+        .card { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); }
+        .count { font-size: 32px; font-weight: 700; margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>VPN SaaS Admin</h1>
+        <nav>
+            <a href="/admin">Dashboard</a>
+            <a href="/admin/users">Users</a>
+            <a href="/admin/plans">Plans</a>
+            <a href="/admin/subscriptions">Subscriptions</a>
+            <a href="/admin/payments">Payments</a>
+            <a href="/admin/vpn-keys">VPN Keys</a>
+        </nav>
+    </header>
+    <main>
+        <div class="grid">
+            <div class="card"><div>Users</div><div class="count">{{.UsersCount}}</div></div>
+            <div class="card"><div>Plans</div><div class="count">{{.PlansCount}}</div></div>
+            <div class="card"><div>Subscriptions</div><div class="count">{{.SubsCount}}</div></div>
+            <div class="card"><div>Payments</div><div class="count">{{.PaymentsCount}}</div></div>
+            <div class="card"><div>VPN Keys</div><div class="count">{{.KeysCount}}</div></div>
+        </div>
+    </main>
+</body>
+</html>
+

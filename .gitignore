@@ -1,0 +1,16 @@
+.env
+*.env
+__pycache__/
+*.pyc
+.venv/
+.idea/
+.vscode/
+backend-go/data/*.db
+backend-go/data/*.sqlite
+backend-go/bin/
+bot-python/.venv/
+bot-python/.pytest_cache/
+bot-python/.mypy_cache/
+
+backend-go/.cache/
+*.log

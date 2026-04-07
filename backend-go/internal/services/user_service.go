@@ -1,0 +1,45 @@
+package services
+
+import (
+	"errors"
+	"time"
+
+	"gorm.io/gorm"
+
+	"vpn-bot/backend-go/internal/dto"
+	"vpn-bot/backend-go/internal/models"
+	"vpn-bot/backend-go/internal/repositories"
+)
+
+type UserService struct {
+	repo *repositories.UserRepository
+}
+
+func NewUserService(repo *repositories.UserRepository) *UserService {
+	return &UserService{repo: repo}
+}
+
+func (s *UserService) EnsureUser(input dto.EnsureUserRequest) (*models.User, error) {
+	user, err := s.repo.FindByTelegramID(input.TelegramID)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+
+		user = &models.User{
+			TelegramID: input.TelegramID,
+			Username:   input.Username,
+			FullName:   input.FullName,
+			CreatedAt:  time.Now(),
+		}
+		return user, s.repo.Save(user)
+	}
+
+	user.Username = input.Username
+	user.FullName = input.FullName
+	return user, s.repo.Save(user)
+}
+
+func (s *UserService) ListAll() ([]models.User, error) {
+	return s.repo.ListAll()
+}

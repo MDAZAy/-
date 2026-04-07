@@ -1,0 +1,815 @@
+[07.04.2026 15:09] Dazay: ТЕХНИЧЕСКОЕ ЗАДАНИЕ
+ПРОЕКТ: VPN TELEGRAM SAAS BOT
+АРХИТЕКТУРА: PYTHON BOT + GO BACKEND
+
+1. ОБЩЕЕ ОПИСАНИЕ ПРОЕКТА
+
+Цель проекта:
+Создать Telegram SaaS-сервис для продажи VPN-подписок через Telegram-бота с автоматической оплатой, автоматической выдачей VPN-ключей, хранением пользователей, тарифов, платежей, подписок и наличием административной панели.
+
+Формат работы системы:
+- пользователь взаимодействует только через Telegram-бота
+- бот не работает с БД напрямую
+- бот обращается к Go backend по HTTP API
+- Go backend обрабатывает бизнес-логику
+- Go backend работает с БД, оплатами, VPN provider и админкой
+
+2. ЦЕЛИ ПРОЕКТА
+
+2.1 Основные цели
+- продавать VPN-подписки через Telegram
+- выдавать VPN-ключ автоматически после оплаты
+- управлять тарифами
+- управлять пользователями и подписками
+- иметь backend, пригодный для production
+- иметь архитектуру, которую можно масштабировать
+
+2.2 Дополнительные цели
+- обеспечить удобный деплой на VPS
+- обеспечить возможность перехода с SQLite на PostgreSQL
+- обеспечить возможность подключения x-ui или Hiddify
+- обеспечить возможность подключения YooKassa
+- обеспечить возможность добавления фоновых задач
+
+3. АРХИТЕКТУРА СИСТЕМЫ
+
+3.1 Общая схема
+
+Telegram User
+↓
+Python Telegram Bot
+↓ HTTP API
+Go Backend
+↓
+Database
+↓
+YooKassa / VPN Provider / Admin Panel
+
+3.2 Разделение ответственности
+
+Python bot отвечает за:
+- команды Telegram
+- кнопки
+- тексты
+- UX внутри Telegram
+- запросы к Go backend
+- уведомления пользователю
+
+Go backend отвечает за:
+- API
+- модели и бизнес-логику
+- работу с базой данных
+- создание и проверку платежей
+- обработку webhook
+- создание и выдачу VPN ключей
+- административную панель
+- фоновые задачи
+- системную безопасность
+
+4. ТЕХНОЛОГИЧЕСКИЙ СТЕК
+
+4.1 Bot
+- Python 3.11+
+- aiogram 3.x
+- httpx
+- pydantic-settings
+- python-dotenv
+
+4.2 Backend
+- Go 1.22+
+- Gin
+- GORM
+- SQLite на старте
+- PostgreSQL позже
+- net/http для внешних интеграций
+
+4.3 Admin Frontend
+- html/template
+- CSS
+- JS минимально
+
+4.4 Платежи
+- YooKassa
+
+4.5 VPN
+- x-ui API или Hiddify API
+
+4.6 Infrastructure
+- Ubuntu/Debian VPS
+- systemd
+- Nginx
+- HTTPS
+
+5. СТРУКТУРА ПРОЕКТА
+
+Проект делится на 3 части:
+1. bot-python
+2. backend-go
+3. deploy
+
+5.1 bot-python
+Назначение:
+- Telegram bot
+- общение с backend
+- интерфейс пользователя
+
+5.2 backend-go
+Назначение:
+- ядро проекта
+- API
+- БД
+- платежи
+- подписки
+- VPN выдача
+- admin panel
+
+5.3 deploy
+Назначение:
+- nginx
+- systemd
+- скрипты выката
+- backup
+
+6. БИЗНЕС-СУЩНОСТИ
+
+6.1 User
+Описание:
+Пользователь Telegram, который пользуется ботом.
+
+Поля:
+- id
+- telegram_id
+- username
+- full_name
+- is_admin
+- is_blocked
+- created_at
+
+6.2 Plan
+Описание:
+Тариф подписки.
+
+Поля:
+- id
+- name
+- price
+- duration_days
+- description
+- is_active
+- created_at
+
+6.3 Subscription
+Описание:
+Подписка пользователя на VPN.
+
+Поля:
+- id
+- user_id
+- plan_id
+- status
+- start_at
+- end_at
+- created_at
+
+Статусы:
+- active
+- expired
+- canceled
+- pending
+
+6.4 Payment
+Описание:
+Платеж за тариф.
+
+Поля:
+- id
+- user_id
+- plan_id
+- amount
+- currency
+- status
+- provider
+- external_payment_id
+- payment_url
+- raw_response
+- created_at
+
+Статусы:
+- pending
+- waiting_for_capture
+- succeeded
+- canceled
+- failed
+
+6.5 VPNKey
+Описание:
+Выданный пользователю VPN-ключ.
+
+Поля:
+- id
+- user_id
+- provider
+- external_client_id
+- key_name
+- access_url
+- config_json
+- is_active
+- expires_at
+- created_at
+
+7. ОСНОВНЫЕ СЦЕНАРИИ РАБОТЫ
+
+7.1 Регистрация пользователя
+Сценарий:
+- пользователь нажимает /start
+- Python bot отправляет запрос на backend
+- backend создаёт или обновляет пользователя
+- бот показывает меню
+
+Результат:
+- пользователь зарегистрирован
+- дублей пользователей нет
+
+7.2 Просмотр тарифов
+Сценарий:
+- пользователь нажимает Тарифы
+- бот отправляет GET запрос к backend
+- backend возвращает активные тарифы
+- бот показывает список
+
+Результат:
+- пользователь видит актуальные тарифы
+
+7.3 Покупка тарифа
+Сценарий:
+- пользователь нажимает Купить тариф
+- бот получает список тарифов
+- пользователь выбирает тариф
+- backend создаёт платёж в YooKassa
+- backend возвращает payment_url
+- бот отправляет пользователю ссылку оплаты
+[07.04.2026 15:09] Dazay: Результат:
+- пользователь переходит к оплате
+
+7.4 Подтверждение оплаты
+Сценарий:
+- пользователь оплачивает тариф
+- YooKassa отправляет webhook на backend
+- backend валидирует событие
+- backend находит нужный платёж
+- backend меняет статус платежа
+- backend создаёт подписку
+
+Результат:
+- подписка создаётся автоматически
+
+7.5 Получение VPN ключа
+Сценарий:
+- пользователь нажимает Получить VPN ключ
+- бот отправляет запрос на backend
+- backend проверяет активную подписку
+- backend проверяет, есть ли уже активный ключ
+- если ключ есть — отдаёт его
+- если ключа нет — создаёт его у VPN provider
+- backend сохраняет ключ
+- backend возвращает access_url
+- бот показывает его пользователю
+
+Результат:
+- пользователь получает рабочий VPN ключ
+
+7.6 Истечение подписки
+Сценарий:
+- фоновая задача backend проверяет просроченные подписки
+- backend меняет статус active -> expired
+- backend деактивирует ключ у VPN provider
+- backend помечает VPNKey как неактивный
+- бот может отправить уведомление
+
+Результат:
+- просроченные доступы отключаются автоматически
+
+8. PYTHON BOT: ФУНКЦИИ
+
+8.1 Обязательные команды
+- /start
+- /help
+- /menu
+
+8.2 Кнопки главного меню
+- Мой профиль
+- Тарифы
+- Купить тариф
+- Моя подписка
+- Получить VPN ключ
+- Поддержка
+
+8.3 Обязательные handler-файлы
+- start.py
+- profile.py
+- plans.py
+- payments.py
+- subscriptions.py
+- vpn.py
+- support.py
+
+8.4 Обязанности bot-python/app/client.py
+- единая точка HTTP взаимодействия с backend
+- методы:
+  - health()
+  - ensure_user()
+  - get_plans()
+  - create_payment()
+  - get_active_subscription()
+  - issue_vpn_key()
+
+8.5 Ограничения для бота
+- бот не должен подключаться к БД напрямую
+- бот не должен содержать бизнес-логику оплаты
+- бот не должен генерировать VPN-ключи сам
+- бот должен работать только как клиент backend
+
+9. GO BACKEND: ФУНКЦИИ
+
+9.1 Обязательные модули backend
+- config
+- db
+- models
+- dto
+- repositories
+- services
+- handlers
+- routes
+- middleware
+- web
+
+9.2 Обязательные API endpoints
+
+Health:
+- GET /health
+
+Users:
+- POST /api/v1/users/ensure
+
+Plans:
+- GET /api/v1/plans
+- POST /api/v1/plans
+
+Subscriptions:
+- POST /api/v1/subscriptions/create
+- GET /api/v1/subscriptions/active/:user_id
+
+Payments:
+- POST /api/v1/payments/create
+- POST /api/v1/payments/webhook
+
+VPN:
+- POST /api/v1/vpn/issue
+
+9.3 Дополнительные endpoints позже
+Plans:
+- PATCH /api/v1/plans/:id
+- DELETE /api/v1/plans/:id
+
+Subscriptions:
+- GET /api/v1/subscriptions/history/:user_id
+
+Payments:
+- GET /api/v1/payments/:id
+- GET /api/v1/payments/user/:user_id
+
+VPN:
+- POST /api/v1/vpn/reissue
+- POST /api/v1/vpn/deactivate
+- GET /api/v1/vpn/my/:user_id
+
+Admin:
+- GET /admin
+- GET /admin/users
+- GET /admin/plans
+- GET /admin/subscriptions
+- GET /admin/payments
+- GET /admin/vpn-keys
+
+10. СТРУКТУРА BACKEND ПО СЛОЯМ
+
+10.1 Config layer
+Файл:
+- internal/config/config.go
+
+Задачи:
+- загрузка env
+- конфиг приложения
+- порт
+- database url
+- admin token
+- yookassa config
+- vpn provider config
+
+10.2 DB layer
+Файлы:
+- internal/db/db.go
+- internal/db/migrate.go
+- internal/db/seed.go
+
+Задачи:
+- подключение к БД
+- автомиграция
+- стартовый seed
+
+10.3 Models layer
+Файлы:
+- user.go
+- plan.go
+- subscription.go
+- payment.go
+- vpn_key.go
+
+Задачи:
+- описание таблиц
+
+10.4 DTO layer
+Файлы:
+- user.go
+- plan.go
+- subscription.go
+- payment.go
+- vpn.go
+- health.go
+
+Задачи:
+- входные и выходные структуры API
+
+10.5 Repository layer
+Файлы:
+- user_repository.go
+- plan_repository.go
+- subscription_repository.go
+- payment_repository.go
+- vpn_key_repository.go
+
+Задачи:
+- доступ к БД
+- CRUD
+- поиск сущностей
+
+10.6 Service layer
+Файлы:
+- user_service.go
+- plan_service.go
+- subscription_service.go
+- payment_service.go
+- vpn_service.go
+
+Задачи:
+- бизнес-логика
+- создание подписок
+- создание платежей
+- интеграция с VPN provider
+
+10.7 Handler layer
+Файлы:
+- health_handler.go
+- user_handler.go
+- plan_handler.go
+- subscription_handler.go
+- payment_handler.go
+- vpn_handler.go
+
+Задачи:
+- обработка HTTP запросов
+- binding
+- вызов service
+- формирование ответа
+
+10.8 Routes layer
+Файл:
+- internal/routes/routes.go
+
+Задачи:
+- регистрация маршрутов
+- группировка API
+[07.04.2026 15:09] Dazay: 10.9 Middleware layer
+Файлы:
+- logger.go
+- recovery.go
+- admin_auth.go
+
+Задачи:
+- логирование
+- обработка panic
+- защита admin endpoints
+
+11. БАЗА ДАННЫХ
+
+11.1 Стартовая БД
+На первом этапе:
+- SQLite
+
+Физически:
+- backend-go/data/app.db
+
+11.2 Production БД
+На следующем этапе:
+- PostgreSQL
+
+11.3 Миграции
+Папка:
+- backend-go/migrations/
+
+Обязательные миграции:
+- 001_create_users.sql
+- 002_create_plans.sql
+- 003_create_subscriptions.sql
+- 004_create_payments.sql
+- 005_create_vpn_keys.sql
+
+11.4 Seed
+Папка:
+- backend-go/seed/
+
+Назначение:
+- стартовые тарифы
+- тестовые данные
+
+12. ИНТЕГРАЦИЯ С YOOKASSA
+
+12.1 Цель
+Создать реальную оплату тарифа с автоматическим подтверждением через webhook.
+
+12.2 Что должно работать
+- create payment
+- redirect/confirmation url
+- webhook payment.succeeded
+- автоматическое создание подписки
+
+12.3 Что хранить в Payment
+- внутренний id
+- external_payment_id
+- payment_url
+- status
+- raw_response
+
+12.4 Что делает backend при webhook
+- получает event
+- проверяет payment id
+- находит Payment
+- если статус ещё не обработан:
+  - меняет статус на succeeded
+  - создаёт подписку
+
+13. ИНТЕГРАЦИЯ С VPN PROVIDER
+
+13.1 Возможные провайдеры
+- x-ui
+- Hiddify
+
+13.2 Что должен уметь backend
+- создать клиента у провайдера
+- получить ссылку подключения
+- сохранить external_client_id
+- сохранить access_url
+- деактивировать клиента
+- повторно выдать ключ без бесконечных дублей
+
+13.3 Логика выдачи ключа
+- если подписки нет — ошибка
+- если подписка есть и есть активный ключ — вернуть существующий
+- если подписка есть и ключа нет — создать новый
+- сохранить в БД
+- вернуть пользователю
+
+14. ADMIN PANEL
+
+14.1 Назначение
+Административный веб-интерфейс для просмотра данных.
+
+14.2 Разделы
+- Dashboard
+- Users
+- Plans
+- Subscriptions
+- Payments
+- VPN Keys
+
+14.3 Минимальные возможности
+- видеть список пользователей
+- видеть список тарифов
+- видеть список подписок
+- видеть список платежей
+- видеть список ключей
+
+14.4 Следующие возможности
+- блокировка пользователя
+- отключение ключа
+- деактивация тарифа
+- фильтры и поиск
+
+15. ФОНОВЫЕ ЗАДАЧИ
+
+15.1 Задачи на будущее
+- автоматическая деактивация просроченных подписок
+- автоматическая деактивация VPN ключей
+- уведомление о скором окончании
+- напоминание о продлении
+
+15.2 Логика expirer job
+- найти subscriptions с end_at < now и status = active
+- выставить status = expired
+- отключить активные ключи пользователя
+
+16. БЕЗОПАСНОСТЬ
+
+16.1 Требования
+- admin endpoints должны быть защищены токеном
+- webhook должен обрабатываться только на backend
+- .env не должен попадать в git
+- backend должен работать по HTTPS в production
+- токены и ключи не хардкодить в исходниках
+
+16.2 Ограничения
+- бот не хранит секретные ключи оплаты
+- критичная логика только на backend
+- прямой доступ пользователей к admin panel ограничен
+
+17. ЭТАПЫ РАЗРАБОТКИ
+
+ЭТАП 1. Скелет проекта
+Что входит:
+- структура папок
+- .env
+- config
+- db
+- main.go
+- базовый bot.py
+- базовый start handler
+
+Результат:
+- backend стартует
+- bot стартует
+- /health работает
+
+ЭТАП 2. Users
+Что входит:
+- модель User
+- ensure_user endpoint
+- интеграция /start -> ensure_user
+
+Результат:
+- пользователь создаётся в БД
+
+ЭТАП 3. Plans
+Что входит:
+- модель Plan
+- GET /plans
+- POST /plans
+- вывод тарифов в боте
+
+Результат:
+- тарифы создаются и показываются пользователю
+
+ЭТАП 4. Subscriptions
+Что входит:
+- модель Subscription
+- create subscription
+- get active subscription
+
+Результат:
+- backend умеет хранить и проверять подписки
+
+ЭТАП 5. Payments mock
+Что входит:
+- модель Payment
+- mock payment create
+- mock success
+- авто-создание подписки
+
+Результат:
+- бизнес-флоу оплаты протестирован без реального провайдера
+
+ЭТАП 6. YooKassa real
+Что входит:
+- create real payment
+- webhook
+- return url
+- subscription after payment
+
+Результат:
+- можно принимать реальные оплаты
+
+ЭТАП 7. VPN mock
+Что входит:
+- модель VPNKey
+- mock issue endpoint
+- проверка активной подписки
+
+Результат:
+- логика выдачи ключей готова
+
+ЭТАП 8. x-ui / Hiddify real
+Что входит:
+- реальный provider client
+- создание клиента
+- деактивация клиента
+- выдача рабочей ссылки
+[07.04.2026 15:09] Dazay: Результат:
+- пользователь получает реальный VPN
+
+ЭТАП 9. Admin panel
+Что входит:
+- dashboard
+- users
+- plans
+- subscriptions
+- payments
+- vpn keys
+
+Результат:
+- админ видит всю систему через браузер
+
+ЭТАП 10. Automation
+Что входит:
+- expirer job
+- vpn deactivation job
+- уведомления
+
+Результат:
+- система сама обрабатывает просрочку
+
+ЭТАП 11. Deploy
+Что входит:
+- nginx
+- systemd
+- HTTPS
+- VPS deploy
+- production env
+
+Результат:
+- сервис работает 24/7 на сервере
+
+18. ЧТО СЧИТАЕТСЯ ГОТОВЫМ MVP
+
+MVP считается готовым, если:
+- пользователь пишет /start
+- пользователь видит тарифы
+- пользователь может создать оплату
+- после оплаты создаётся подписка
+- пользователь может получить VPN ключ
+- backend хранит пользователей, подписки, платежи и ключи
+- админ может видеть основные данные
+
+19. ЧТО СЧИТАЕТСЯ PRODUCTION-READY
+
+Production-ready считается, если:
+- backend работает на VPS
+- webhook работает с внешнего HTTPS URL
+- ключи выдаются автоматически
+- просроченные подписки отключаются
+- admin panel доступна и защищена
+- резервное копирование БД настроено
+
+20. ПОРЯДОК РАБОТЫ, ЧТОБЫ НЕ ЗАПУТАТЬСЯ
+
+Правильный порядок:
+1. backend skeleton
+2. bot skeleton
+3. users
+4. plans
+5. subscriptions
+6. payments mock
+7. yookassa
+8. vpn mock
+9. x-ui/hiddify
+10. admin
+11. automation
+12. deploy
+
+21. ЧТО ДЕЛАТЬ ПРЯМО СЕЙЧАС
+
+Текущий приоритет:
+1. зафиксировать структуру проекта
+2. поднять Go backend
+3. поднять Python bot
+4. сделать users
+5. сделать plans
+6. сделать subscriptions
+7. потом payments
+8. потом vpn
+9. потом admin
+10. потом deploy
+
+22. ИТОГ
+
+Проект строится по модели:
+Python bot = интерфейс
+Go backend = ядро
+
+Главный принцип:
+бот ничего не знает о базе и не решает бизнес-задачи.
+Всё важное находится в backend.
+
+Это позволяет:
+- не запутаться
+- легко масштабировать проект
+- удобно деплоить
+- безопасно подключать оплаты и VPN

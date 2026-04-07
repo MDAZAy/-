@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; min-height: 100vh; display: grid; place-items: center; }
+        .card { width: min(520px, 92vw); background: #111827; border-radius: 20px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.35); }
+        button { background: #22c55e; color: #04130a; border: 0; border-radius: 12px; padding: 14px 18px; font-weight: 700; cursor: pointer; }
+        code { color: #93c5fd; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Mock payment</h1>
+        <p>Это тестовая страница оплаты для MVP.</p>
+        <p>External payment id: <code>{{.ExternalID}}</code></p>
+        <form method="post" action="/mock/payments/{{.ExternalID}}/succeed">
+            <button type="submit">Подтвердить оплату</button>
+        </form>
+    </div>
+</body>
+</html>
+

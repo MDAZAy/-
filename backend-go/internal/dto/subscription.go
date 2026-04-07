@@ -1,0 +1,18 @@
+package dto
+
+import "time"
+
+type CreateSubscriptionRequest struct {
+	UserID uint `json:"user_id" binding:"required"`
+	PlanID uint `json:"plan_id" binding:"required"`
+}
+
+type SubscriptionResponse struct {
+	ID        uint      `json:"id"`
+	UserID    uint      `json:"user_id"`
+	PlanID    uint      `json:"plan_id"`
+	Status    string    `json:"status"`
+	StartAt   time.Time `json:"start_at"`
+	EndAt     time.Time `json:"end_at"`
+	CreatedAt time.Time `json:"created_at"`
+}

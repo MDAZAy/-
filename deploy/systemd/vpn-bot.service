@@ -1,0 +1,23 @@
+[Unit]
+Description=VPN Telegram SaaS Bot
+After=network-online.target vpn-backend.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=vpnbot
+Group=vpnbot
+WorkingDirectory=/opt/vpn-bot/current/bot-python
+EnvironmentFile=/opt/vpn-bot/current/bot-python/.env
+ExecStart=/opt/vpn-bot/current/bot-python/.venv/bin/python -m app.main
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/vpn-bot/current/bot-python
+
+[Install]
+WantedBy=multi-user.target

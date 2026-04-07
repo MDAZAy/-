@@ -1,0 +1,14 @@
+package models
+ 
+import "time"
+
+type Subscription struct {
+	ID        uint      `gorm:"primaryKey"`
+	UserID    uint      `gorm:"index;not null"`
+	PlanID    uint      `gorm:"index;not null"`
+	Status    string    `gorm:"size:64;index;not null"`
+	StartAt   time.Time `gorm:"not null"`
+	EndAt     time.Time `gorm:"not null"`
+	CreatedAt time.Time `gorm:"not null"`
+}
+

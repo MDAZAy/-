@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    plan_id INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    start_at DATETIME NOT NULL,
+    end_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL
+);
+

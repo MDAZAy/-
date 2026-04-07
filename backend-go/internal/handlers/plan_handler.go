@@ -1,0 +1,61 @@
+package handlers
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+
+	"vpn-bot/backend-go/internal/dto"
+	"vpn-bot/backend-go/internal/models"
+	"vpn-bot/backend-go/internal/services"
+)
+
+type PlanHandler struct {
+	service *services.PlanService
+}
+
+func NewPlanHandler(service *services.PlanService) *PlanHandler {
+	return &PlanHandler{service: service}
+}
+
+func (h *PlanHandler) List(c *gin.Context) {
+	plans, err := h.service.ListActive()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := make([]dto.PlanResponse, 0, len(plans))
+	for i := range plans {
+		response = append(response, toPlanResponse(&plans[i]))
+	}
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *PlanHandler) Create(c *gin.Context) {
+	var input dto.CreatePlanRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	plan, err := h.service.Create(input)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, toPlanResponse(plan))
+}
+
+func toPlanResponse(plan *models.Plan) dto.PlanResponse {
+	return dto.PlanResponse{
+		ID:           plan.ID,
+		Name:         plan.Name,
+		Price:        plan.Price,
+		DurationDays: plan.DurationDays,
+		Description:  plan.Description,
+		IsActive:     plan.IsActive,
+		CreatedAt:    plan.CreatedAt,
+	}
+}

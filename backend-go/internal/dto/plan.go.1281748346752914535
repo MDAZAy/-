@@ -1,0 +1,21 @@
+package dto
+
+import "time"
+
+type CreatePlanRequest struct {
+	Name         string  `json:"name" binding:"required"`
+	Price        float64 `json:"price" binding:"required"`
+	DurationDays int     `json:"duration_days" binding:"required"`
+	Description  string  `json:"description"`
+}
+
+type PlanResponse struct {
+	ID           uint      `json:"id"`
+	Name         string    `json:"name"`
+	Price        float64   `json:"price"`
+	DurationDays int       `json:"duration_days"`
+	Description  string    `json:"description"`
+	IsActive     bool      `json:"is_active"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
