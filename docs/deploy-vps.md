@@ -32,6 +32,9 @@
 1. Установить системные пакеты и nginx.
 2. Скопировать проект в `/opt/vpn-bot/current`.
 3. Заполнить `.env` для backend и bot.
+   - для CloudPayments переключить `PAYMENT_PROVIDER=cloudpayments`
+   - указать `CLOUDPAYMENTS_PUBLIC_ID` и `CLOUDPAYMENTS_API_SECRET`
+   - в кабинете CloudPayments указать webhook URL: `https://vpn.example.com/api/v1/payments/webhook`
 4. Установить systemd unit-файлы.
 5. Включить nginx конфиг.
 6. Запустить `deploy/scripts/deploy.sh`.
@@ -47,6 +50,5 @@
 
 После первого успешного VPS запуска уже имеет смысл:
 
-- подключать real YooKassa
 - подключать real VPN provider
 - переводить bot с polling на более строгий production режим по твоему выбору

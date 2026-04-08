@@ -28,7 +28,7 @@
    - домен
    - `BOT_TOKEN`
    - `ADMIN_TOKEN`
-   - затем YooKassa/VPN provider при подключении real integrations
+   - затем CloudPayments/VPN provider при подключении real integrations
 5. Установить systemd unit-файлы в `/etc/systemd/system/`
 6. Установить nginx конфиг в `/etc/nginx/sites-available/`
 7. Выполнить деплой:

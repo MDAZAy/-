@@ -42,6 +42,7 @@ func Register(dep Dependencies) {
 
 	dep.Router.GET("/mock/payments/:external_id", dep.PaymentHandler.ShowMockPaymentPage)
 	dep.Router.POST("/mock/payments/:external_id/succeed", dep.PaymentHandler.SimulateSuccess)
+	dep.Router.GET("/payments/return", dep.PaymentHandler.ShowReturnPage)
 
 	admin := dep.Router.Group("/admin", middleware.AdminAuth(dep.Config.AdminToken))
 	{

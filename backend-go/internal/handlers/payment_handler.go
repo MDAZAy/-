@@ -9,6 +9,7 @@ import (
 
 	"vpn-bot/backend-go/internal/dto"
 	"vpn-bot/backend-go/internal/models"
+	"vpn-bot/backend-go/internal/providers"
 	"vpn-bot/backend-go/internal/services"
 )
 
@@ -37,23 +38,45 @@ func (h *PaymentHandler) Create(c *gin.Context) {
 }
 
 func (h *PaymentHandler) Webhook(c *gin.Context) {
-	var input dto.PaymentWebhookRequest
-	if err := c.ShouldBindJSON(&input); err != nil {
+	payload, err := c.GetRawData()
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	payment, err := h.service.HandleWebhook(input)
+	_, err = h.service.HandleWebhook(payload, c.Request.Header)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "payment not found"})
+			return
+		}
+		if errors.Is(err, providers.ErrInvalidPaymentWebhook) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, toPaymentResponse(payment))
+	c.JSON(http.StatusOK, h.service.WebhookSuccessResponse())
+}
+
+func (h *PaymentHandler) ShowReturnPage(c *gin.Context) {
+	success := c.DefaultQuery("status", "success") != "failed"
+	title := "Оплата принята"
+	message := "Платёж обрабатывается. Вернитесь в Telegram-бот и проверьте подписку через несколько секунд."
+	if !success {
+		title = "Платёж не завершён"
+		message = "Платёж не был завершён. Вернитесь в Telegram-бот и попробуйте оплатить снова."
+	}
+
+	c.HTML(http.StatusOK, "payment_return.tmpl", dto.PaymentReturnPageData{
+		Title:       title,
+		Success:     success,
+		Message:     message,
+		SupportURL:  c.Query("support_url"),
+		TelegramBot: c.Query("bot"),
+	})
 }
 
 func (h *PaymentHandler) ShowMockPaymentPage(c *gin.Context) {

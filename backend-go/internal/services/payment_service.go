@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"vpn-bot/backend-go/internal/dto"
@@ -48,7 +49,7 @@ func (s *PaymentService) Create(input dto.CreatePaymentRequest) (*models.Payment
 		PlanID:            input.PlanID,
 		Amount:            plan.Price,
 		Currency:          "RUB",
-		Status:            "pending",
+		Status:            defaultPaymentStatus(intent.Status),
 		Provider:          s.paymentProvider.Name(),
 		ExternalPaymentID: intent.ExternalID,
 		PaymentURL:        intent.PaymentURL,
@@ -56,27 +57,43 @@ func (s *PaymentService) Create(input dto.CreatePaymentRequest) (*models.Payment
 		CreatedAt:         time.Now(),
 	}
 
-	return payment, s.repo.Create(payment)
+	if err := s.repo.Create(payment); err != nil {
+		return nil, err
+	}
+
+	if payment.Status == "succeeded" {
+		if err := s.fulfillPayment(payment); err != nil {
+			return nil, err
+		}
+	}
+
+	return payment, nil
 }
 
-func (s *PaymentService) HandleWebhook(input dto.PaymentWebhookRequest) (*models.Payment, error) {
-	payment, err := s.repo.FindByExternalID(input.Object.ID)
+func (s *PaymentService) HandleWebhook(payload []byte, headers http.Header) (*models.Payment, error) {
+	event, err := s.paymentProvider.ParseWebhook(payload, headers)
 	if err != nil {
 		return nil, err
 	}
 
-	payload, _ := json.Marshal(map[string]interface{}{
-		"event":  input.Event,
-		"object": input.Object,
-	})
-	payment.RawResponse = string(payload)
+	payment, err := s.repo.FindByExternalID(event.ExternalID)
+	if err != nil {
+		return nil, err
+	}
+
+	if json.Valid(payload) {
+		payment.RawResponse = string(payload)
+	} else {
+		sanitized, _ := json.Marshal(map[string]string{"raw": string(payload)})
+		payment.RawResponse = string(sanitized)
+	}
 
 	if payment.Status == "succeeded" {
 		return payment, s.repo.Save(payment)
 	}
 
-	if input.Object.Status != "succeeded" && input.Event != "payment.succeeded" {
-		payment.Status = input.Object.Status
+	if !event.IsSuccess {
+		payment.Status = defaultPaymentStatus(event.Status)
 		return payment, s.repo.Save(payment)
 	}
 
@@ -85,27 +102,51 @@ func (s *PaymentService) HandleWebhook(input dto.PaymentWebhookRequest) (*models
 		return nil, err
 	}
 
-	_, err = s.subscriptionService.Create(dto.CreateSubscriptionRequest{
-		UserID: payment.UserID,
-		PlanID: payment.PlanID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("subscription create after payment: %w", err)
+	if err := s.fulfillPayment(payment); err != nil {
+		return nil, err
 	}
 
 	return payment, nil
 }
 
 func (s *PaymentService) SimulateSuccess(externalID string) (*models.Payment, error) {
-	return s.HandleWebhook(dto.PaymentWebhookRequest{
+	payload, err := json.Marshal(dto.PaymentWebhookRequest{
 		Event: "payment.succeeded",
 		Object: dto.PaymentWebhookObject{
 			ID:     externalID,
 			Status: "succeeded",
 		},
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return s.HandleWebhook(payload, http.Header{})
 }
 
 func (s *PaymentService) ListAll() ([]models.Payment, error) {
 	return s.repo.ListAll()
+}
+
+func (s *PaymentService) WebhookSuccessResponse() map[string]interface{} {
+	return s.paymentProvider.WebhookSuccessResponse()
+}
+
+func (s *PaymentService) fulfillPayment(payment *models.Payment) error {
+	_, err := s.subscriptionService.Create(dto.CreateSubscriptionRequest{
+		UserID: payment.UserID,
+		PlanID: payment.PlanID,
+	})
+	if err != nil {
+		return fmt.Errorf("subscription create after payment: %w", err)
+	}
+
+	return nil
+}
+
+func defaultPaymentStatus(status string) string {
+	if status == "" {
+		return "pending"
+	}
+	return status
 }

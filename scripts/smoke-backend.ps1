@@ -35,4 +35,3 @@ $vpn = Invoke-RestMethod -Uri "$BaseUrl/api/v1/vpn/issue" -Method Post -ContentT
     vpn_provider          = $vpn.provider
     vpn_url               = $vpn.access_url
 } | ConvertTo-Json -Depth 4
-

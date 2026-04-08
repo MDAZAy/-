@@ -30,3 +30,11 @@ type PaymentResponse struct {
 	PaymentURL        string    `json:"payment_url"`
 	CreatedAt         time.Time `json:"created_at"`
 }
+
+type PaymentReturnPageData struct {
+	Title       string
+	Success     bool
+	Message     string
+	SupportURL  string
+	TelegramBot string
+}

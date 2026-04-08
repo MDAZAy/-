@@ -1,5 +1,5 @@
 from aiogram import F, Router
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from app.client import BackendClient
 from app.handlers.common import ensure_backend_user
@@ -35,8 +35,7 @@ async def buy_tariff_callback(callback: CallbackQuery, api: BackendClient) -> No
         ]
     )
     await callback.message.answer(
-        "Платёж создан. Откройте страницу оплаты и подтвердите mock-платёж, чтобы получить подписку.",
+        "Платёж создан. Откройте страницу оплаты и завершите оплату. После подтверждения подписка активируется автоматически.",
         reply_markup=keyboard,
     )
     await callback.answer()
-
