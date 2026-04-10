@@ -2,7 +2,7 @@
 
 MVP-реализация проекта из `VPN_TZ_DD.txt`:
 
-- `backend-go` — Go backend с SQLite, HTTP API, mock/CloudPayments payments, mock VPN и админкой
+- `backend-go` — Go backend с SQLite, HTTP API, mock/CloudPayments payments, mock/3x-ui VPN и админкой
 - `bot-python` — Telegram bot на `aiogram`, работающий только через HTTP API backend
 - `deploy` — базовые артефакты для `systemd`, `nginx` и бэкапов
 - `docs/agents` — контекст и процесс для агентской разработки
@@ -58,13 +58,13 @@ powershell -ExecutionPolicy Bypass -File scripts/run-bot.ps1
 - просмотр тарифов
 - создание mock-платежа или CloudPayments payment link
 - mock webhook / CloudPayments webhook с автосозданием подписки
-- выдача mock VPN-ключа
+- выдача mock VPN-ключа или 3x-ui VLESS Reality ссылки
 - админ-панель со списками пользователей, тарифов, подписок, платежей и ключей
 - job для истечения подписок и деактивации ключей
 
 ## Что пока заглушено
 
-- реальный x-ui / Hiddify
+- реальный 3x-ui
 - уведомления о продлении
 - полный CRUD админки
 

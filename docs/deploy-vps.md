@@ -35,6 +35,10 @@
    - для CloudPayments переключить `PAYMENT_PROVIDER=cloudpayments`
    - указать `CLOUDPAYMENTS_PUBLIC_ID` и `CLOUDPAYMENTS_API_SECRET`
    - в кабинете CloudPayments указать webhook URL: `https://vpn.example.com/api/v1/payments/webhook`
+   - для 3x-ui переключить `VPN_PROVIDER=3xui`
+   - указать `VPN_PROVIDER_ENDPOINT`, `VPN_PROVIDER_USERNAME`, `VPN_PROVIDER_PASSWORD`
+   - указать `VPN_PROVIDER_INBOUND_ID`, `VPN_PROVIDER_PUBLIC_HOST`, `VPN_PROVIDER_PUBLIC_PORT`
+   - указать `VPN_PROVIDER_REALITY_SERVER_NAME`, `VPN_PROVIDER_REALITY_PUBLIC_KEY`, `VPN_PROVIDER_REALITY_SHORT_ID`
 4. Установить systemd unit-файлы.
 5. Включить nginx конфиг.
 6. Запустить `deploy/scripts/deploy.sh`.
@@ -50,5 +54,5 @@
 
 После первого успешного VPS запуска уже имеет смысл:
 
-- подключать real VPN provider
+- подключать real 3x-ui provider
 - переводить bot с polling на более строгий production режим по твоему выбору

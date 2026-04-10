@@ -20,7 +20,7 @@ async def vpn_handler(message: Message, api: BackendClient) -> None:
     await message.answer(
         "\n".join(
             [
-                "VPN ключ готов:",
+                "VPN-ключ готов:",
                 f"Провайдер: {key['provider']}",
                 f"Название: {key['key_name']}",
                 f"Ссылка: {key['access_url']}",
@@ -29,4 +29,3 @@ async def vpn_handler(message: Message, api: BackendClient) -> None:
             ]
         )
     )
-

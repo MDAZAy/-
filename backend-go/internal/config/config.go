@@ -22,6 +22,16 @@ type Config struct {
 	CloudPaymentsAPIToken string
 	VPNProviderURL        string
 	VPNProviderToken      string
+	VPNProviderUsername   string
+	VPNProviderPassword   string
+	VPNProviderInboundID  int
+	VPNPublicHost         string
+	VPNPublicPort         string
+	VPNRealityServerName  string
+	VPNRealityPublicKey   string
+	VPNRealityShortID     string
+	VPNFlow               string
+	VPNFingerprint        string
 
 	SeedPlansPath   string
 	ExpirerInterval time.Duration
@@ -44,6 +54,16 @@ func Load() Config {
 		CloudPaymentsAPIToken: getEnv("CLOUDPAYMENTS_API_SECRET", ""),
 		VPNProviderURL:        getEnv("VPN_PROVIDER_ENDPOINT", ""),
 		VPNProviderToken:      getEnv("VPN_PROVIDER_TOKEN", ""),
+		VPNProviderUsername:   getEnv("VPN_PROVIDER_USERNAME", ""),
+		VPNProviderPassword:   getEnv("VPN_PROVIDER_PASSWORD", ""),
+		VPNProviderInboundID:  getEnvInt("VPN_PROVIDER_INBOUND_ID", 0),
+		VPNPublicHost:         getEnv("VPN_PROVIDER_PUBLIC_HOST", ""),
+		VPNPublicPort:         getEnv("VPN_PROVIDER_PUBLIC_PORT", "443"),
+		VPNRealityServerName:  getEnv("VPN_PROVIDER_REALITY_SERVER_NAME", ""),
+		VPNRealityPublicKey:   getEnv("VPN_PROVIDER_REALITY_PUBLIC_KEY", ""),
+		VPNRealityShortID:     getEnv("VPN_PROVIDER_REALITY_SHORT_ID", ""),
+		VPNFlow:               getEnv("VPN_PROVIDER_FLOW", "xtls-rprx-vision"),
+		VPNFingerprint:        getEnv("VPN_PROVIDER_FINGERPRINT", "chrome"),
 		SeedPlansPath:         getEnv("SEED_PLANS_PATH", "seed/plans.json"),
 		ExpirerInterval:       time.Duration(getEnvInt("EXPIRER_INTERVAL_SECONDS", 60)) * time.Second,
 	}

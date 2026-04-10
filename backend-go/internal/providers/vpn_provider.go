@@ -2,6 +2,7 @@ package providers
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"vpn-bot/backend-go/internal/config"
@@ -25,7 +26,12 @@ type MockVPNProvider struct {
 }
 
 func NewVPNProvider(cfg config.Config) VPNProvider {
-	return &MockVPNProvider{publicBaseURL: cfg.PublicBaseURL}
+	switch strings.ToLower(cfg.VPNProvider) {
+	case "3xui":
+		return NewThreeXUIVPNProvider(cfg)
+	default:
+		return &MockVPNProvider{publicBaseURL: cfg.PublicBaseURL}
+	}
 }
 
 func (p *MockVPNProvider) Name() string {
