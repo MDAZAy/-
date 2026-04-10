@@ -27,6 +27,8 @@ type MockVPNProvider struct {
 
 func NewVPNProvider(cfg config.Config) VPNProvider {
 	switch strings.ToLower(cfg.VPNProvider) {
+	case "xui", "x-ui":
+		return NewXUIVPNProvider(cfg)
 	case "3xui":
 		return NewThreeXUIVPNProvider(cfg)
 	default:
