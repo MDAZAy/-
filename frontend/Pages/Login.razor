@@ -24,7 +24,7 @@
                     <MudAlert Severity="Severity.Error" Dense="true" Class="mt-4">@_error</MudAlert>
                 }
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-6" OnClick="SubmitAsync">Войти</MudButton>
-                <MudButton Variant="Variant.Text" Color="Color.Secondary" FullWidth="true" Class="mt-2" OnClick="() => Navigation.NavigateTo("/register")">Создать аккаунт</MudButton>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary" FullWidth="true" Class="mt-2" OnClick="NavigateRegister">Создать аккаунт</MudButton>
             </MudForm>
         </MudPaper>
     </MudItem>
@@ -57,4 +57,6 @@
             _error = ex.Message;
         }
     }
+
+    private void NavigateRegister() => Navigation.NavigateTo("/register");
 }

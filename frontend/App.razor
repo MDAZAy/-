@@ -1,15 +1,13 @@
-<CascadingAuthenticationState>
-    <Router AppAssembly="@typeof(App).Assembly">
-        <Found Context="routeData">
-            <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layouts.MainLayout)" />
-        </Found>
-        <NotFound>
-            <LayoutView Layout="@typeof(Layouts.MainLayout)">
-                <MudPaper Class="not-found-card pa-8">
-                    <MudText Typo="Typo.h4">Страница не найдена</MudText>
-                    <MudText Class="mt-2">Проверьте адрес или вернитесь в кабинет.</MudText>
-                </MudPaper>
-            </LayoutView>
-        </NotFound>
-    </Router>
-</CascadingAuthenticationState>
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layouts.MainLayout)" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(Layouts.MainLayout)">
+            <MudPaper Class="not-found-card pa-8">
+                <MudText Typo="Typo.h4">Страница не найдена</MudText>
+                <MudText Class="mt-2">Проверьте адрес или вернитесь в кабинет.</MudText>
+            </MudPaper>
+        </LayoutView>
+    </NotFound>
+</Router>

@@ -9,17 +9,17 @@
 
 <MudLayout>
     <MudAppBar Elevation="0" Class="top-bar">
-        <MudText Typo="Typo.h5" Class="brand-mark" @onclick="() => Navigation.NavigateTo("/cabinet")">
-            NordGarage
-        </MudText>
+        <div class="brand-mark" @onclick="NavigateCabinet">
+            <MudText Typo="Typo.h5">NordGarage</MudText>
+        </div>
         <MudSpacer />
-        <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="() => Navigation.NavigateTo("/cabinet")">Кабинет</MudButton>
-        <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="() => Navigation.NavigateTo("/vehicles")">Мои авто</MudButton>
-        <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="() => Navigation.NavigateTo("/appointments/new")">Новая запись</MudButton>
-        <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="() => Navigation.NavigateTo("/history")">История</MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="NavigateCabinet">Кабинет</MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="NavigateVehicles">Мои авто</MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="NavigateNewAppointment">Новая запись</MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="NavigateHistory">История</MudButton>
         @if (Session.IsAdmin)
         {
-            <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="() => Navigation.NavigateTo("/admin")">Админка</MudButton>
+            <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="NavigateAdmin">Админка</MudButton>
         }
         @if (Session.IsAuthenticated)
         {
@@ -27,7 +27,7 @@
         }
         else
         {
-            <MudButton Variant="Variant.Outlined" Color="Color.Success" OnClick="() => Navigation.NavigateTo("/login")">Вход</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Success" OnClick="NavigateLogin">Вход</MudButton>
         }
     </MudAppBar>
 
@@ -63,11 +63,11 @@
             {
                 FontFamily = new[] { "Manrope", "Segoe UI", "sans-serif" }
             },
-            H1 = new H1Typography { FontFamily = new[] { "Sora", "Manrope", "sans-serif" }, FontWeight = 700 },
-            H2 = new H2Typography { FontFamily = new[] { "Sora", "Manrope", "sans-serif" }, FontWeight = 700 },
-            H3 = new H3Typography { FontFamily = new[] { "Sora", "Manrope", "sans-serif" }, FontWeight = 700 },
-            H4 = new H4Typography { FontFamily = new[] { "Sora", "Manrope", "sans-serif" }, FontWeight = 700 },
-            H5 = new H5Typography { FontFamily = new[] { "Sora", "Manrope", "sans-serif" }, FontWeight = 700 }
+            H1 = new H1Typography { FontFamily = new[] { "Sora", "Manrope", "sans-serif" }, FontWeight = "700" },
+            H2 = new H2Typography { FontFamily = new[] { "Sora", "Manrope", "sans-serif" }, FontWeight = "700" },
+            H3 = new H3Typography { FontFamily = new[] { "Sora", "Manrope", "sans-serif" }, FontWeight = "700" },
+            H4 = new H4Typography { FontFamily = new[] { "Sora", "Manrope", "sans-serif" }, FontWeight = "700" },
+            H5 = new H5Typography { FontFamily = new[] { "Sora", "Manrope", "sans-serif" }, FontWeight = "700" }
         }
     };
 
@@ -89,4 +89,11 @@
         await Session.ClearAsync();
         Navigation.NavigateTo("/login");
     }
+
+    private void NavigateCabinet() => Navigation.NavigateTo("/cabinet");
+    private void NavigateVehicles() => Navigation.NavigateTo("/vehicles");
+    private void NavigateNewAppointment() => Navigation.NavigateTo("/appointments/new");
+    private void NavigateHistory() => Navigation.NavigateTo("/history");
+    private void NavigateAdmin() => Navigation.NavigateTo("/admin");
+    private void NavigateLogin() => Navigation.NavigateTo("/login");
 }
