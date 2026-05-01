@@ -1,9 +1,0 @@
-FROM mws-agent:latest
-
-SYSTEM """
-Finetuned variant placeholder.
-Use this file after local LoRA merge or custom model export.
-"""
-
-PARAMETER num_ctx 4096
-PARAMETER temperature 0.15

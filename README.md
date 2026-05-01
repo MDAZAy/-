@@ -1,76 +1,30 @@
-# VPN Telegram SaaS Bot
+# Auto Service Booking System
 
-MVP-реализация проекта из `VPN_TZ_DD.txt`:
+Web application for online booking in an auto service.
 
-- `backend-go` — Go backend с SQLite, HTTP API, mock/CloudPayments payments, mock/x-ui/3x-ui VPN и админкой
-- `bot-python` — Telegram bot на `aiogram`, работающий только через HTTP API backend
-- `deploy` — базовые артефакты для `systemd`, `nginx` и бэкапов
-- `docs/agents` — контекст и процесс для агентской разработки
+## Stack
 
-## Быстрый старт
+- Frontend: Blazor WebAssembly + MudBlazor
+- Backend: Go + Gin + GORM
+- Database: MySQL 8
+- Auth: JWT + Refresh Token
+- Docs: Swagger
+- Migrations: golang-migrate
 
-### 1. Backend
+## Structure
 
-```bash
-cd backend-go
-cp .env.example .env
-go mod tidy
-go run ./cmd/server
-```
+- `backend/`
+- `frontend/`
+- `docker-compose.yml`
 
-Backend поднимется на `http://localhost:8080`.
+## Run
 
-Локальные команды для Windows / PowerShell:
+1. Copy `backend/.env.example` to `backend/.env`
+2. Start MySQL with `docker compose up -d mysql`
+3. Run backend with `go run ./cmd/api` from `backend/`
+4. Run frontend with `dotnet run` from `frontend/`
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/run-backend.ps1
-powershell -ExecutionPolicy Bypass -File scripts/smoke-backend.ps1
-powershell -ExecutionPolicy Bypass -File scripts/stop-backend.ps1
-```
+## Seed users
 
-Полезные URL:
-
-- `GET /health`
-- `GET /admin?token=change-me-admin-token`
-
-### 2. Bot
-
-```bash
-cd bot-python
-python -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-python -m app.main
-```
-
-Или через PowerShell-скрипт:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/check-bot.ps1
-powershell -ExecutionPolicy Bypass -File scripts/run-bot.ps1
-```
-
-## MVP-покрытие
-
-- `/start`, `/help`, `/menu`
-- регистрация пользователя через `POST /api/v1/users/ensure`
-- просмотр тарифов
-- создание mock-платежа или CloudPayments payment link
-- mock webhook / CloudPayments webhook с автосозданием подписки
-- выдача mock VPN-ключа или x-ui/3x-ui VLESS Reality ссылки
-- админ-панель со списками пользователей, тарифов, подписок, платежей и ключей
-- job для истечения подписок и деактивации ключей
-
-## Что пока заглушено
-
-- реальный x-ui/3x-ui
-- уведомления о продлении
-- полный CRUD админки
-
-## VPS
-
-Для выкладки на сервер смотри:
-
-- [deploy/README.md](c:\Projecs\VPN_BOT\deploy\README.md)
-- [docs/deploy-vps.md](c:\Projecs\VPN_BOT\docs\deploy-vps.md)
+- `admin@example.com / Admin123`
+- `user@example.com / User123`
