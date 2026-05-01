@@ -73,6 +73,15 @@ func (r *PostgresRepository) DB() *sql.DB {
 	return r.db
 }
 
+// Ping checks DB availability for health endpoints.
+func (r *PostgresRepository) Ping(ctx context.Context) error {
+	if r == nil || r.db == nil {
+		return fmt.Errorf("storage repository is not initialized")
+	}
+
+	return r.db.PingContext(ctx)
+}
+
 func withDefaultPoolConfig(cfg PostgresConfig) PostgresConfig {
 	if cfg.MaxOpenConns <= 0 {
 		cfg.MaxOpenConns = defaultMaxOpenConns

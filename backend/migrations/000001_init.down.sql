@@ -1,0 +1,17 @@
+DROP TABLE IF EXISTS app_settings;
+DROP TABLE IF EXISTS refresh_tokens;
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS appointment_files;
+DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS appointment_history;
+DROP TABLE IF EXISTS appointments;
+DROP TABLE IF EXISTS holidays;
+DROP TABLE IF EXISTS working_hours;
+DROP TABLE IF EXISTS mechanics;
+DROP TABLE IF EXISTS appointment_statuses;
+DROP TABLE IF EXISTS services;
+DROP TABLE IF EXISTS service_categories;
+DROP TABLE IF EXISTS vehicles;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS roles;

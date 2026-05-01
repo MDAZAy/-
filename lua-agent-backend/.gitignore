@@ -2,3 +2,5 @@
 bin/
 dist/
 *.log
+.venv/
+__pycache__/

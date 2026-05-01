@@ -1,0 +1,88 @@
+@page "/admin"
+@inject ApiClient Api
+@inject SessionState Session
+@inject NavigationManager Navigation
+
+@if (!Session.IsAdmin)
+{
+    <MudAlert Severity="Severity.Warning">Эта страница доступна только администратору.</MudAlert>
+}
+else if (_dashboard is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudGrid>
+        <MudItem xs="12" md="3">
+            <MudPaper Class="content-card pa-6 stat-block">
+                <MudText Typo="Typo.h6">Пользователи</MudText>
+                <MudText Typo="Typo.h3">@_dashboard.Users_Count</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudPaper Class="content-card pa-6 stat-block">
+                <MudText Typo="Typo.h6">Авто</MudText>
+                <MudText Typo="Typo.h3">@_dashboard.Vehicles_Count</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudPaper Class="content-card pa-6 stat-block">
+                <MudText Typo="Typo.h6">Записи</MudText>
+                <MudText Typo="Typo.h3">@_dashboard.Appointments_Count</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudPaper Class="content-card pa-6 stat-block">
+                <MudText Typo="Typo.h6">Механики</MudText>
+                <MudText Typo="Typo.h3">@_dashboard.Mechanics_Count</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12">
+            <MudPaper Class="content-card pa-6">
+                <MudText Typo="Typo.h5">Все записи сервиса</MudText>
+                <MudTable Items="_appointments" Dense="true" Hover="true" Class="mt-4">
+                    <HeaderContent>
+                        <MudTh>Номер</MudTh>
+                        <MudTh>Клиент</MudTh>
+                        <MudTh>Услуга</MudTh>
+                        <MudTh>Авто</MudTh>
+                        <MudTh>Время</MudTh>
+                        <MudTh>Статус</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Confirmation_Number</MudTd>
+                        <MudTd>@context.Vehicle.Plate_Number</MudTd>
+                        <MudTd>@context.Service.Name</MudTd>
+                        <MudTd>@context.Vehicle.Make @context.Vehicle.Model</MudTd>
+                        <MudTd>@context.Start_Time_Local</MudTd>
+                        <MudTd>@context.Status</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private DashboardResponse? _dashboard;
+    private readonly List<AppointmentResponse> _appointments = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Session.InitializeAsync();
+        if (!Session.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!Session.IsAdmin)
+        {
+            return;
+        }
+
+        _dashboard = await Api.GetDashboardAsync();
+        _appointments.AddRange(await Api.GetAllAppointmentsAsync());
+    }
+}

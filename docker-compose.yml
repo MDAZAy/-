@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: autoservice
+      MYSQL_USER: autoservice
+      MYSQL_PASSWORD: autoservice
+    ports:
+      - "3306:3306"
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  backend:
+    build:
+      context: ./backend
+    depends_on:
+      - mysql
+    environment:
+      HTTP_PORT: 8080
+      MYSQL_DSN: autoservice:autoservice@tcp(mysql:3306)/autoservice?charset=utf8mb4&parseTime=True&loc=UTC
+      JWT_ACCESS_SECRET: change-me-access-secret
+      JWT_REFRESH_SECRET: change-me-refresh-secret
+      JWT_ACCESS_TTL_MINUTES: 15
+      JWT_REFRESH_TTL_HOURS: 720
+      AUTO_MIGRATE: "true"
+      MIGRATIONS_DIR: /app/migrations
+      DISPLAY_TIMEZONE: Europe/Helsinki
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
+volumes:
+  mysql_data:

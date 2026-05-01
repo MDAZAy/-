@@ -1,0 +1,13 @@
+@page "/"
+@inject NavigationManager Navigation
+@inject SessionState Session
+
+<MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await Session.InitializeAsync();
+        Navigation.NavigateTo(Session.IsAuthenticated ? "/cabinet" : "/login", true);
+    }
+}

@@ -1,0 +1,85 @@
+@page "/cabinet"
+@inject ApiClient Api
+@inject SessionState Session
+@inject NavigationManager Navigation
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else if (_profile is null)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudGrid>
+        <MudItem xs="12" md="8">
+            <MudPaper Class="content-card feature-card pa-8">
+                <MudText Typo="Typo.h3">Добро пожаловать, @_profile.Full_Name</MudText>
+                <MudText Class="mt-3">Здесь видно профиль, статус аккаунта и ближайшие записи. Все времена уже отданы в `Europe/Helsinki`, а в базе backend хранит их в UTC.</MudText>
+                <MudChip T="string" Value="@_profile.Role" Color="Color.Primary" Class="mt-4">Роль: @_profile.Role</MudChip>
+                <MudText Class="mt-4">@_profile.Email</MudText>
+                <MudText>@_profile.Phone</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="content-card stats-card pa-6">
+                <MudText Typo="Typo.h5">Кратко</MudText>
+                <MudDivider Class="my-4" />
+                <MudText>Автомобилей: @_vehicles.Count</MudText>
+                <MudText>Записей: @_appointments.Count</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-6" FullWidth="true" OnClick="() => Navigation.NavigateTo("/appointments/new")">Создать запись</MudButton>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12">
+            <MudPaper Class="content-card pa-6">
+                <MudText Typo="Typo.h5">Ближайшие записи</MudText>
+                <MudTable Items="_appointments.Take(3).ToList()" Dense="true" Hover="true" Class="mt-4">
+                    <HeaderContent>
+                        <MudTh>Номер</MudTh>
+                        <MudTh>Услуга</MudTh>
+                        <MudTh>Авто</MudTh>
+                        <MudTh>Время</MudTh>
+                        <MudTh>Статус</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Confirmation_Number</MudTd>
+                        <MudTd>@context.Service.Name</MudTd>
+                        <MudTd>@context.Vehicle.Make @context.Vehicle.Model</MudTd>
+                        <MudTd>@context.Start_Time_Local</MudTd>
+                        <MudTd>@context.Status</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private ProfileResponse? _profile;
+    private readonly List<VehicleResponse> _vehicles = [];
+    private readonly List<AppointmentResponse> _appointments = [];
+    private string _error = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Session.InitializeAsync();
+        if (!Session.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login", true);
+            return;
+        }
+
+        try
+        {
+            _profile = await Api.GetProfileAsync();
+            _vehicles.AddRange(await Api.GetVehiclesAsync());
+            _appointments.AddRange(await Api.GetMyAppointmentsAsync());
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+}

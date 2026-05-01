@@ -1,0 +1,55 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: lua-agent-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-lua_agent}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-lua_agent}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  embed:
+    image: python:3.11-slim
+    container_name: lua-agent-embed
+    restart: unless-stopped
+    working_dir: /app
+    command: sh -c "pip install -r embeddings/requirements.txt && uvicorn embeddings.embed_server:app --host 0.0.0.0 --port 8081"
+    volumes:
+      - ./:/app
+    ports:
+      - "8081:8081"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lua-agent-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      embed:
+        condition: service_started
+    environment:
+      CONFIG_PATH: /app/config/config.docker.yaml
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./config:/app/config
+
+volumes:
+  pgdata:

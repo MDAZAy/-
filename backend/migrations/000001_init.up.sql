@@ -1,0 +1,236 @@
+CREATE TABLE IF NOT EXISTS roles (
+    id CHAR(36) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS users (
+    id CHAR(36) PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    phone VARCHAR(50) NOT NULL,
+    role_id CHAR(36) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_users_role FOREIGN KEY (role_id) REFERENCES roles(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS vehicles (
+    id CHAR(36) PRIMARY KEY,
+    user_id CHAR(36) NOT NULL,
+    make VARCHAR(120) NOT NULL,
+    model VARCHAR(120) NOT NULL,
+    year INT NOT NULL,
+    plate_number VARCHAR(50) NOT NULL UNIQUE,
+    color VARCHAR(80) NULL,
+    vin VARCHAR(50) NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_vehicles_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS service_categories (
+    id CHAR(36) PRIMARY KEY,
+    name VARCHAR(150) NOT NULL UNIQUE,
+    description TEXT NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS services (
+    id CHAR(36) PRIMARY KEY,
+    category_id CHAR(36) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    description TEXT NULL,
+    duration_minutes INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_services_category FOREIGN KEY (category_id) REFERENCES service_categories(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS appointment_statuses (
+    id CHAR(36) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS mechanics (
+    id CHAR(36) PRIMARY KEY,
+    full_name VARCHAR(255) NOT NULL,
+    phone VARCHAR(50) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS working_hours (
+    id CHAR(36) PRIMARY KEY,
+    weekday INT NOT NULL UNIQUE,
+    start_time VARCHAR(5) NOT NULL,
+    end_time VARCHAR(5) NOT NULL,
+    is_working BOOLEAN NOT NULL DEFAULT TRUE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS holidays (
+    id CHAR(36) PRIMARY KEY,
+    holiday_date DATE NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS appointments (
+    id CHAR(36) PRIMARY KEY,
+    user_id CHAR(36) NOT NULL,
+    vehicle_id CHAR(36) NOT NULL,
+    service_id CHAR(36) NOT NULL,
+    status_id CHAR(36) NOT NULL,
+    mechanic_id CHAR(36) NOT NULL,
+    start_time DATETIME NOT NULL,
+    end_time DATETIME NOT NULL,
+    confirmation_number VARCHAR(50) NOT NULL UNIQUE,
+    idempotency_key VARCHAR(255) NOT NULL,
+    notes TEXT NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_appointments_user FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT fk_appointments_vehicle FOREIGN KEY (vehicle_id) REFERENCES vehicles(id),
+    CONSTRAINT fk_appointments_service FOREIGN KEY (service_id) REFERENCES services(id),
+    CONSTRAINT fk_appointments_status FOREIGN KEY (status_id) REFERENCES appointment_statuses(id),
+    CONSTRAINT fk_appointments_mechanic FOREIGN KEY (mechanic_id) REFERENCES mechanics(id),
+    UNIQUE KEY idx_appointments_user_idempotency (user_id, idempotency_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS appointment_history (
+    id CHAR(36) PRIMARY KEY,
+    appointment_id CHAR(36) NOT NULL,
+    status_id CHAR(36) NOT NULL,
+    changed_by_user_id CHAR(36) NULL,
+    comment TEXT NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_appointment_history_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id),
+    CONSTRAINT fk_appointment_history_status FOREIGN KEY (status_id) REFERENCES appointment_statuses(id),
+    CONSTRAINT fk_appointment_history_user FOREIGN KEY (changed_by_user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id CHAR(36) PRIMARY KEY,
+    user_id CHAR(36) NOT NULL,
+    appointment_id CHAR(36) NULL,
+    type VARCHAR(100) NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT fk_notifications_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS payments (
+    id CHAR(36) PRIMARY KEY,
+    appointment_id CHAR(36) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(10) NOT NULL DEFAULT 'EUR',
+    status VARCHAR(50) NOT NULL,
+    paid_at DATETIME NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_payments_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS appointment_files (
+    id CHAR(36) PRIMARY KEY,
+    appointment_id CHAR(36) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_url TEXT NOT NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_appointment_files_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id CHAR(36) PRIMARY KEY,
+    user_id CHAR(36) NULL,
+    action VARCHAR(150) NOT NULL,
+    entity VARCHAR(150) NOT NULL,
+    entity_id VARCHAR(64) NOT NULL,
+    ip_address VARCHAR(64) NOT NULL,
+    metadata TEXT NOT NULL,
+    description TEXT NOT NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_audit_logs_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id CHAR(36) PRIMARY KEY,
+    user_id CHAR(36) NOT NULL,
+    token_hash VARCHAR(128) NOT NULL UNIQUE,
+    expires_at DATETIME NOT NULL,
+    revoked_at DATETIME NULL,
+    user_agent VARCHAR(255) NOT NULL,
+    ip_address VARCHAR(64) NOT NULL,
+    last_used_at DATETIME NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_refresh_tokens_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS app_settings (
+    id CHAR(36) PRIMARY KEY,
+    `key` VARCHAR(120) NOT NULL UNIQUE,
+    `value` TEXT NOT NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX users_email ON users(email);
+CREATE INDEX appointments_user ON appointments(user_id);
+CREATE INDEX appointments_time ON appointments(start_time, end_time);
+CREATE INDEX appointments_status ON appointments(status_id);
+CREATE INDEX vehicles_user ON vehicles(user_id);

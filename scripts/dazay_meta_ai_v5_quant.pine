@@ -1,0 +1,679 @@
+// This Pine Script(TM) code is subject to the terms of the Mozilla Public License 2.0
+// https://mozilla.org/MPL/2.0/
+// Original idea by muhammadjonazizi4 & DAZAY_ARCHITECT
+// Refactored and upgraded into a cleaner v5 quant architecture.
+//@version=5
+
+indicator("Dazay Pro: META-AI v6 [Elite Quant]", shorttitle = "DAZAY AI v6", overlay = false, precision = 3, max_labels_count = 500, max_lines_count = 500)
+
+// ==================================================
+// === 1. INPUTS
+// ==================================================
+grp_ui = "Interface / Visuals"
+tablePosInput = input.string("Bottom Right", "Info Panel Position", options = ["Top Right", "Top Left", "Bottom Right", "Bottom Left"], group = grp_ui)
+textSizeInput = input.string("Small", "Table Text Size", options = ["Tiny", "Small", "Normal"], group = grp_ui)
+show_debug = input.bool(false, "Show Debug Labels", group = grp_ui)
+show_meta_plot = input.bool(true, "Show Meta Signal Plot", group = grp_ui)
+
+grp_ai = "META-AI Core"
+useNeuralNet = input.bool(true, "Use META-AI", group = grp_ai)
+lr_input = input.float(0.055, "Base Learning Rate", step = 0.005, minval = 0.001, group = grp_ai)
+mem_decay = input.float(0.985, "Weight Memory", step = 0.001, minval = 0.90, maxval = 0.999, group = grp_ai)
+reward_bars = input.int(3, "Reward Lookback", minval = 1, group = grp_ai)
+threshold_buy = input.float(-0.55, "Buy Threshold", maxval = 0.0, step = 0.05, group = grp_ai)
+threshold_sell = input.float(0.55, "Sell Threshold", minval = 0.0, step = 0.05, group = grp_ai)
+cooldown_bars = input.int(5, "Cooldown Bars", minval = 1, group = grp_ai)
+
+grp_ai_pro = "META-AI Pro Layer"
+use_htf_confirm = input.bool(true, "Use Higher Timeframe Bias", group = grp_ai_pro)
+htf_tf = input.timeframe("240", "Higher Timeframe", group = grp_ai_pro)
+htf_weight = input.float(0.30, "HTF Bias Weight", minval = 0.0, maxval = 0.8, step = 0.05, group = grp_ai_pro)
+use_adaptive_smoothing = input.bool(true, "Use Adaptive Signal Smoothing", group = grp_ai_pro)
+smoothing_floor = input.float(0.18, "Smoothing Floor", minval = 0.05, maxval = 0.8, step = 0.01, group = grp_ai_pro)
+signal_persistence = input.int(2, "Signal Persistence Bars", minval = 1, maxval = 5, group = grp_ai_pro)
+edge_bias_strength = input.float(0.25, "Long/Short Edge Bias", minval = 0.0, maxval = 0.6, step = 0.05, group = grp_ai_pro)
+
+grp_quant = "Quant Layer"
+use_regime_filter = input.bool(true, "Use Regime Filtering", group = grp_quant)
+min_adx = input.int(20, "Min Trend Strength (ADX)", minval = 5, group = grp_quant)
+noise_sensitivity = input.float(1.5, "Noise Sensitivity", step = 0.1, minval = 0.5, maxval = 3.0, group = grp_quant)
+dynamic_thr_mult = input.float(1.25, "Dynamic Threshold Multiplier", step = 0.05, minval = 1.0, group = grp_quant)
+efficiency_len = input.int(20, "Efficiency Lookback", minval = 5, group = grp_quant)
+min_quality_score = input.int(45, "Min Signal Quality", minval = 0, maxval = 100, group = grp_quant)
+
+grp_state = "META-AI Health / State"
+health_lookback = input.int(50, "Health Lookback", minval = 10, group = grp_state)
+entropy_limit = input.float(0.78, "Entropy Limit", step = 0.01, minval = 0.2, maxval = 1.0, group = grp_state)
+freeze_entropy = input.float(0.92, "Freeze Entropy Trigger", step = 0.01, minval = 0.5, maxval = 1.0, group = grp_state)
+freeze_on_instability = input.bool(true, "Freeze On Instability", group = grp_state)
+
+grp_risk = "Risk Management"
+use_trend_filter = input.bool(true, "Trend Filter (EMA)", group = grp_risk)
+trend_period = input.int(200, "Trend EMA Period", minval = 10, group = grp_risk)
+rm_mode = input.string("ATR", "Risk Mode", options = ["ATR", "Percent"], group = grp_risk)
+risk_val = input.float(1.0, "Risk Size (SL)", step = 0.1, minval = 0.1, group = grp_risk)
+reward_ratio = input.float(4.0, "Risk : Reward Ratio", step = 0.1, minval = 0.5, group = grp_risk)
+atr_period = input.int(14, "ATR Period", minval = 1, group = grp_risk)
+high_vol_stop_buffer = input.float(1.10, "High Volatility Stop Buffer", step = 0.05, minval = 1.0, group = grp_risk)
+use_conf_scaling = input.bool(true, "Use Confidence Position Scaling", group = grp_risk)
+
+grp_presets = "Presets"
+presetTF = input.string("Custom", "TF Preset", options = ["Custom", "1m", "5m", "15m", "30m", "1h", "4h", "1d"], group = grp_presets)
+
+grp_visual = "Legacy Visuals"
+showfib = input.bool(false, "Show Fibonacci Lines", group = grp_visual, inline = "v1")
+showentry = input.bool(true, "Show Labels", group = grp_visual, inline = "v1")
+square = input.bool(true, "Square Line", group = grp_visual, inline = "v1")
+showdboom = input.bool(true, "Show Downward Boom", group = grp_visual, inline = "v2")
+showlongs = input.bool(true, "Show Long Entries", group = grp_visual, inline = "v2")
+showshorts = input.bool(true, "Show Short Entries", group = grp_visual, inline = "v2")
+
+grp_legacy = "Legacy Core"
+LPPeriod_manual = input.float(6.0, "Quotient LPPeriod", group = grp_legacy, inline = "q1")
+K1_manual = input.float(0.7, "K1", group = grp_legacy, inline = "q1")
+K2_manual = input.float(0.3, "K2", group = grp_legacy, inline = "q1")
+trigno_manual = input.int(2, "Trigger Length", group = grp_legacy, inline = "q2")
+osccol = input.color(color.blue, "Osc Color", group = grp_legacy, inline = "q2")
+trigcol = input.color(color.white, "Trigger Color", group = grp_legacy, inline = "q2")
+
+LPPeriod2_manual = input.float(27.0, "LPPeriod2", group = grp_legacy, inline = "q3")
+K12_manual = input.float(0.8, "K1", group = grp_legacy, inline = "q3")
+K22_manual = input.float(0.3, "K2", group = grp_legacy, inline = "q3")
+osccol2 = input.color(color.red, "Line Color", group = grp_legacy, inline = "q3")
+osccol22 = input.color(color.red, "Fill Color", group = grp_legacy, inline = "q3")
+
+LPPeriod3_manual = input.float(11.0, "LPPeriod3", group = grp_legacy, inline = "q4")
+K13_manual = input.float(0.99, "K1", group = grp_legacy, inline = "q4")
+osccol3 = input.color(color.yellow, "Line Color", group = grp_legacy, inline = "q4")
+
+n1_manual = input.int(9, "WT Master", group = grp_legacy, inline = "wt1")
+n2_manual = input.int(6, "WT Time 1", group = grp_legacy, inline = "wt1")
+n3_manual = input.int(3, "WT Smooth", group = grp_legacy, inline = "wt1")
+n4_manual = input.int(21, "LSMA 1", group = grp_legacy, inline = "wt2")
+n5_manual = input.int(0, "LSMA Offset", group = grp_legacy, inline = "wt2")
+lsmaline_manual = input.int(200, "LSMA Long", group = grp_legacy, inline = "wt2")
+
+grp_sr = "Support / Resistance"
+toggleBreaks = input.bool(false, "Show Break Lines", group = grp_sr)
+leftBars = input.int(1, "Resistance Left", minval = 1, group = grp_sr, inline = "sr1")
+rightBars = input.int(1, "Right", minval = 1, group = grp_sr, inline = "sr1")
+
+grp_misc = "Visual Tweaks"
+dragno = input.int(3, "Drag No", minval = 1, group = grp_misc)
+
+// ==================================================
+// === 2. HELPERS
+// ==================================================
+clamp_float(val, min_val, max_val) =>
+    math.max(min_val, math.min(max_val, val))
+
+dir_from_value(val) =>
+    val > 0 ? 1.0 : val < 0 ? -1.0 : 0.0
+
+decay_to_one(weight, decay_factor) =>
+    weight * decay_factor + (1.0 - decay_factor)
+
+normalize_zscore(src, len) =>
+    basis = ta.sma(src, len)
+    dev = ta.stdev(src, len)
+    dev != 0 ? (src - basis) / dev : 0.0
+
+calc_efficiency_ratio(src, len) =>
+    change_abs = math.abs(src - src[len])
+    path = ta.sum(math.abs(ta.change(src)), len)
+    path != 0 ? clamp_float(change_abs / path, 0.0, 1.0) : 0.0
+
+calc_risk_dist(mode, atr_value, price_value, risk_input) =>
+    mode == "ATR" ? atr_value * risk_input : price_value * (risk_input / 100.0)
+
+calc_position_scale(state_mult, conf_value, quality_score) =>
+    conf_component = clamp_float(conf_value / 100.0, 0.0, 1.0)
+    qual_component = clamp_float(quality_score / 100.0, 0.0, 1.0)
+    clamp_float(state_mult * (0.45 + conf_component * 0.35 + qual_component * 0.20), 0.25, 1.25)
+
+calc_eot(src, lp, k1, k2) =>
+    pi_val = 2.0 * math.asin(1.0)
+    alpha1 = (math.cos(0.707 * 2.0 * pi_val / 100.0) + math.sin(0.707 * 2.0 * pi_val / 100.0) - 1.0) / math.cos(0.707 * 2.0 * pi_val / 100.0)
+    float hp = 0.0
+    hp := math.pow(1.0 - alpha1 / 2.0, 2) * (src - 2.0 * nz(src[1]) + nz(src[2])) + 2.0 * (1.0 - alpha1) * nz(hp[1]) - math.pow(1.0 - alpha1, 2) * nz(hp[2])
+    a1 = math.exp(-1.414 * pi_val / lp)
+    b1 = 2.0 * a1 * math.cos(1.414 * pi_val / lp)
+    c2 = b1
+    c3 = -a1 * a1
+    c1 = 1.0 - c2 - c3
+    float filt = 0.0
+    filt := c1 * (hp + nz(hp[1])) / 2.0 + c2 * nz(filt[1]) + c3 * nz(filt[2])
+    float peak = 0.0
+    peak := 0.991 * nz(peak[1])
+    if math.abs(filt) > peak
+        peak := math.abs(filt)
+    x = peak != 0 ? filt / peak : 0.0
+    q1_local = (x + k1) / (k1 * x + 1.0)
+    q2_local = (x + k2) / (k2 * x + 1.0)
+    [q1_local, q2_local]
+
+wt_tci(src, n1, n2) =>
+    esa = ta.ema(src, n1)
+    dev = ta.ema(math.abs(src - esa), n1)
+    ci = dev != 0 ? (src - esa) / (0.025 * dev) : 0.0
+    ta.ema(ci, n2) + 50.0
+
+update_weight(weight, past_signal, price_move, past_atr, entropy_value, lr_base, lr_mod, decay_factor) =>
+    base_weight = decay_to_one(weight, decay_factor)
+    signal_dir = dir_from_value(past_signal)
+    move_dir = dir_from_value(price_move)
+    move_mag = past_atr > 0 ? clamp_float(math.abs(price_move) / past_atr, 0.0, 3.0) : 0.0
+    impact = move_mag * (1.0 + (1.0 - clamp_float(entropy_value, 0.0, 1.0)))
+    delta = signal_dir == 0 or move_dir == 0 ? 0.0 : (signal_dir == move_dir ? lr_base * lr_mod * impact * 0.35 : -lr_base * lr_mod * impact * 0.45)
+    clamp_float(base_weight + delta, 0.15, 4.0)
+
+update_meta_weight(weight, was_correct, consensus_value, decay_factor) =>
+    base_weight = decay_to_one(weight, decay_factor)
+    delta = (was_correct ? 0.035 : -0.045) * (0.75 + clamp_float(consensus_value, 0.0, 1.0) * 0.50)
+    clamp_float(base_weight + delta, 0.20, 2.50)
+
+state_text(state_value) =>
+    state_value == 1 ? "HEALTHY" : state_value == 2 ? "ADAPTING" : state_value == 3 ? "DEGRADED" : "FROZEN"
+
+// ==================================================
+// === 3. PRESETS
+// ==================================================
+float LPPeriod_calc = LPPeriod_manual
+float K1_calc = K1_manual
+float K2_calc = K2_manual
+int trigno_calc = trigno_manual
+float LPPeriod2_calc = LPPeriod2_manual
+float K12_calc = K12_manual
+float K22_calc = K22_manual
+float LPPeriod3_calc = LPPeriod3_manual
+float K13_calc = K13_manual
+int n1_calc = n1_manual
+int n2_calc = n2_manual
+int n3_calc = n3_manual
+int n4_calc = n4_manual
+int n5_calc = n5_manual
+int lsmaline_calc = lsmaline_manual
+
+if presetTF != "Custom"
+    switch presetTF
+        "1m" =>
+            LPPeriod_calc := 2.0
+            K1_calc := 0.2
+            K2_calc := 0.3
+            trigno_calc := 2
+            LPPeriod2_calc := 7.0
+            K12_calc := 0.8
+            K22_calc := 0.3
+            LPPeriod3_calc := 5.0
+            K13_calc := 0.95
+            n1_calc := 6
+            n2_calc := 4
+            n3_calc := 3
+            n4_calc := 30
+            n5_calc := 0
+            lsmaline_calc := 30
+        "5m" =>
+            LPPeriod_calc := 4.0
+            K1_calc := 0.2
+            K2_calc := 0.3
+            trigno_calc := 2
+            LPPeriod2_calc := 15.0
+            K12_calc := 0.7
+            K22_calc := 0.3
+            LPPeriod3_calc := 8.0
+            K13_calc := 0.95
+            n1_calc := 7
+            n2_calc := 4
+            n3_calc := 3
+            n4_calc := 40
+            n5_calc := 0
+            lsmaline_calc := 40
+        "15m" =>
+            LPPeriod_calc := 5.0
+            K1_calc := 0.1
+            K2_calc := 0.3
+            trigno_calc := 2
+            LPPeriod2_calc := 20.0
+            K12_calc := 0.7
+            K22_calc := 0.3
+            LPPeriod3_calc := 10.0
+            K13_calc := 0.95
+            n1_calc := 8
+            n2_calc := 5
+            n3_calc := 3
+            n4_calc := 50
+            n5_calc := 0
+            lsmaline_calc := 50
+        "30m" =>
+            LPPeriod_calc := 6.0
+            K1_calc := 0.2
+            K2_calc := 0.3
+            trigno_calc := 2
+            LPPeriod2_calc := 18.0
+            K12_calc := 0.65
+            K22_calc := 0.3
+            LPPeriod3_calc := 8.0
+            K13_calc := 0.95
+            n1_calc := 8
+            n2_calc := 4
+            n3_calc := 3
+            n4_calc := 55
+            n5_calc := 0
+            lsmaline_calc := 55
+        "1h" =>
+            LPPeriod_calc := 6.0
+            K1_calc := 0.2
+            K2_calc := 0.3
+            trigno_calc := 2
+            LPPeriod2_calc := 22.0
+            K12_calc := 0.65
+            K22_calc := 0.3
+            LPPeriod3_calc := 10.0
+            K13_calc := 0.95
+            n1_calc := 10
+            n2_calc := 5
+            n3_calc := 3
+            n4_calc := 60
+            n5_calc := 0
+            lsmaline_calc := 60
+        "4h" =>
+            LPPeriod_calc := 7.0
+            K1_calc := 0.1
+            K2_calc := 0.3
+            trigno_calc := 2
+            LPPeriod2_calc := 25.0
+            K12_calc := 0.75
+            K22_calc := 0.3
+            LPPeriod3_calc := 12.0
+            K13_calc := 0.97
+            n1_calc := 12
+            n2_calc := 7
+            n3_calc := 3
+            n4_calc := 70
+            n5_calc := 0
+            lsmaline_calc := 70
+        "1d" =>
+            LPPeriod_calc := 10.0
+            K1_calc := 0.0
+            K2_calc := 0.3
+            trigno_calc := 2
+            LPPeriod2_calc := 35.0
+            K12_calc := 0.9
+            K22_calc := 0.3
+            LPPeriod3_calc := 18.0
+            K13_calc := 0.99
+            n1_calc := 18
+            n2_calc := 12
+            n3_calc := 3
+            n4_calc := 120
+            n5_calc := 0
+            lsmaline_calc := 120
+
+float K33_calc = square ? -0.9999 : -K13_calc
+
+// ==================================================
+// === 4. LEGACY CORE CALCULATIONS
+// ==================================================
+[Quotient1, Quotient2] = calc_eot(close, LPPeriod_calc, K1_calc, K2_calc)
+[Quotient3, Quotient4] = calc_eot(close, LPPeriod2_calc, K12_calc, K22_calc)
+[Quotient5, Quotient6] = calc_eot(close, LPPeriod3_calc, K13_calc, K33_calc)
+
+src5 = hlc3
+wt1 = wt_tci(src5, n1_calc, n2_calc)
+wt2 = ta.sma(wt1, 6)
+wt3 = ta.linreg(wt1, n4_calc, n5_calc)
+wt4 = ta.ema((wt1 - wt2) * 2.0 + 50.0, n3_calc)
+trig = ta.sma(wt3, 2)
+lsma = ta.linreg(wt3, lsmaline_calc, 0)
+
+esize = 60.0
+ey = 50.0
+q1 = Quotient1 * esize + ey
+q2 = Quotient2 * esize + ey
+q3 = Quotient3 * esize + ey
+q4 = Quotient4 * esize + ey
+q5 = Quotient5 * esize + ey
+q6 = Quotient6 * esize + ey
+trigger = ta.sma(q1, trigno_calc)
+
+// ==================================================
+// === 5. MARKET REGIME / QUALITY LAYER
+// ==================================================
+dirmov(len) =>
+    up = ta.change(high)
+    down = -ta.change(low)
+    plusDM = na(up) ? na : (up > down and up > 0 ? up : 0)
+    minusDM = na(down) ? na : (down > up and down > 0 ? down : 0)
+    trur = ta.rma(ta.tr(true), len)
+    plus = fixnan(100 * ta.rma(plusDM, len) / trur)
+    minus = fixnan(100 * ta.rma(minusDM, len) / trur)
+    [plus, minus]
+
+[plus_di, minus_di] = dirmov(14)
+sum_di = plus_di + minus_di
+adx_val = 100 * ta.rma(math.abs(plus_di - minus_di) / (sum_di == 0 ? 1 : sum_di), 14)
+
+[bb_mid, bb_upper, bb_lower] = ta.bb(close, 20, 2.0)
+bbw = bb_mid != 0 ? (bb_upper - bb_lower) / bb_mid : 0.0
+bbw_ma = ta.sma(bbw, 50)
+bbw_z = normalize_zscore(bbw, 50)
+is_compression = bbw_ma != 0 ? bbw < bbw_ma * 0.8 : false
+is_volatility = bbw_ma != 0 ? bbw > bbw_ma * 1.5 : false
+
+eff_ratio = calc_efficiency_ratio(close, efficiency_len)
+noise_index = 1.0 - eff_ratio
+
+ema_trend = ta.ema(close, trend_period)
+is_uptrend = close > ema_trend
+is_downtrend = close < ema_trend
+atr_val = ta.atr(atr_period)
+
+htf_close = request.security(syminfo.tickerid, htf_tf, close)
+htf_ema = request.security(syminfo.tickerid, htf_tf, ta.ema(close, trend_period))
+htf_atr = request.security(syminfo.tickerid, htf_tf, ta.atr(atr_period))
+htf_rsi = request.security(syminfo.tickerid, htf_tf, ta.rsi(close, 14))
+htf_price_bias = htf_atr != 0 ? clamp_float((htf_close - htf_ema) / htf_atr, -1.0, 1.0) : 0.0
+htf_rsi_bias = clamp_float((htf_rsi - 50.0) / 25.0, -1.0, 1.0)
+htf_bias = clamp_float((htf_price_bias * 0.60) + (htf_rsi_bias * 0.40), -1.0, 1.0)
+
+regime_trend = adx_val > min_adx and eff_ratio > 0.32
+regime_range = not regime_trend
+
+ai2_raw = clamp_float((wt2 - 50.0) / 25.0, -1.0, 1.0)
+ai1_proxy = clamp_float((Quotient1 + Quotient3 + Quotient5) / 3.0, -1.0, 1.0)
+entropy = clamp_float(math.abs(ai1_proxy - ai2_raw) * 0.5, 0.0, 1.0)
+consensus = 1.0 - entropy
+
+// ==================================================
+// === 6. STATE MACHINE / ADAPTIVE WEIGHTS
+// ==================================================
+const int STATE_HEALTHY = 1
+const int STATE_ADAPTING = 2
+const int STATE_DEGRADED = 3
+const int STATE_FROZEN = 4
+
+var int current_ai_state = STATE_ADAPTING
+var float entropy_avg = 0.50
+var float ai_accuracy_ema = 0.50
+var float long_edge_ema = 0.50
+var float short_edge_ema = 0.50
+
+state_lr_mult_prev = current_ai_state == STATE_HEALTHY ? 1.40 : current_ai_state == STATE_DEGRADED ? 0.70 : current_ai_state == STATE_FROZEN ? 0.0 : 1.0
+
+var float wQ1 = 1.00
+var float wQ2 = 1.00
+var float wQ3 = 1.00
+var float wQ4 = 1.00
+var float wQ5 = 1.00
+var float wQ6 = 1.00
+var float w_meta1 = 0.50
+var float w_meta2 = 0.50
+
+min_bars_ready = math.max(math.max(trend_period, lsmaline_calc), math.max(health_lookback, efficiency_len)) + reward_bars + 5
+is_ready = bar_index > min_bars_ready
+resolved_move = close - close[reward_bars]
+resolved_atr = atr_val[reward_bars]
+resolved_entropy = entropy[reward_bars]
+
+if useNeuralNet and barstate.isconfirmed and is_ready
+    wQ1 := update_weight(wQ1, Quotient1[reward_bars], resolved_move, resolved_atr, resolved_entropy, lr_input, state_lr_mult_prev, mem_decay)
+    wQ2 := update_weight(wQ2, Quotient2[reward_bars], resolved_move, resolved_atr, resolved_entropy, lr_input, state_lr_mult_prev, mem_decay)
+    wQ3 := update_weight(wQ3, Quotient3[reward_bars], resolved_move, resolved_atr, resolved_entropy, lr_input, state_lr_mult_prev, mem_decay)
+    wQ4 := update_weight(wQ4, Quotient4[reward_bars], resolved_move, resolved_atr, resolved_entropy, lr_input, state_lr_mult_prev, mem_decay)
+    wQ5 := update_weight(wQ5, Quotient5[reward_bars], resolved_move, resolved_atr, resolved_entropy, lr_input, state_lr_mult_prev, mem_decay)
+    wQ6 := update_weight(wQ6, Quotient6[reward_bars], resolved_move, resolved_atr, resolved_entropy, lr_input, state_lr_mult_prev, mem_decay)
+
+sum_q_weights = wQ1 + wQ2 + wQ3 + wQ4 + wQ5 + wQ6
+AI1_Score = sum_q_weights != 0 ? (Quotient1 * wQ1 + Quotient2 * wQ2 + Quotient3 * wQ3 + Quotient4 * wQ4 + Quotient5 * wQ5 + Quotient6 * wQ6) / sum_q_weights : 0.0
+AI1_Score := clamp_float(AI1_Score, -1.5, 1.5)
+
+sum_meta_weights = w_meta1 + w_meta2
+wm1_norm = sum_meta_weights != 0 ? w_meta1 / sum_meta_weights : 0.5
+wm2_norm = sum_meta_weights != 0 ? w_meta2 / sum_meta_weights : 0.5
+Raw_Meta_Signal = clamp_float(AI1_Score * wm1_norm + ai2_raw * wm2_norm, -2.0, 2.0)
+
+alpha_health = 2.0 / (health_lookback + 1.0)
+resolved_pred = Raw_Meta_Signal[reward_bars]
+resolved_pred_dir = dir_from_value(resolved_pred)
+resolved_move_dir = dir_from_value(resolved_move)
+acc_sample = is_ready and resolved_pred_dir != 0 and resolved_move_dir != 0 ? (resolved_pred_dir == resolved_move_dir ? 1.0 : 0.0) : na
+entropy_avg := nz(entropy_avg[1], 0.50) + alpha_health * (entropy - nz(entropy_avg[1], 0.50))
+ai_accuracy_ema := na(acc_sample) ? nz(ai_accuracy_ema[1], 0.50) : nz(ai_accuracy_ema[1], 0.50) + alpha_health * (acc_sample - nz(ai_accuracy_ema[1], 0.50))
+long_edge_sample = is_ready and resolved_pred_dir > 0 and resolved_move_dir != 0 ? (resolved_move_dir > 0 ? 1.0 : 0.0) : na
+short_edge_sample = is_ready and resolved_pred_dir < 0 and resolved_move_dir != 0 ? (resolved_move_dir < 0 ? 1.0 : 0.0) : na
+long_edge_ema := na(long_edge_sample) ? nz(long_edge_ema[1], 0.50) : nz(long_edge_ema[1], 0.50) + alpha_health * (long_edge_sample - nz(long_edge_ema[1], 0.50))
+short_edge_ema := na(short_edge_sample) ? nz(short_edge_ema[1], 0.50) : nz(short_edge_ema[1], 0.50) + alpha_health * (short_edge_sample - nz(short_edge_ema[1], 0.50))
+
+ai1_ok = is_ready and dir_from_value(AI1_Score[reward_bars]) != 0 and resolved_move_dir != 0 ? dir_from_value(AI1_Score[reward_bars]) == resolved_move_dir : false
+ai2_ok = is_ready and dir_from_value(ai2_raw[reward_bars]) != 0 and resolved_move_dir != 0 ? dir_from_value(ai2_raw[reward_bars]) == resolved_move_dir : false
+
+if useNeuralNet and barstate.isconfirmed and is_ready
+    w_meta1 := update_meta_weight(w_meta1, ai1_ok, consensus[reward_bars], mem_decay)
+    w_meta2 := update_meta_weight(w_meta2, ai2_ok, consensus[reward_bars], mem_decay)
+
+instability_score = clamp_float(entropy_avg * 0.60 + noise_index * 0.40, 0.0, 1.0)
+
+calc_state(acc_value, entropy_value, instability_value, freeze_enabled, freeze_level) =>
+    freeze_enabled and (entropy_value > freeze_level or instability_value > 0.88) ? STATE_FROZEN : acc_value >= 0.58 and entropy_value < 0.40 and instability_value < 0.45 ? STATE_HEALTHY : acc_value < 0.45 or entropy_value > entropy_limit ? STATE_DEGRADED : STATE_ADAPTING
+
+current_ai_state := calc_state(ai_accuracy_ema, entropy_avg, instability_score, freeze_on_instability, freeze_entropy)
+state_lr_mult = current_ai_state == STATE_HEALTHY ? 1.40 : current_ai_state == STATE_DEGRADED ? 0.70 : current_ai_state == STATE_FROZEN ? 0.0 : 1.0
+state_risk_mult = current_ai_state == STATE_HEALTHY ? 1.00 : current_ai_state == STATE_DEGRADED ? 0.60 : current_ai_state == STATE_FROZEN ? 0.25 : 0.80
+
+// ==================================================
+// === 7. META SIGNAL FILTERING
+// ==================================================
+strict_mult = 1.0 + math.max(0.0, bbw_z) * (dynamic_thr_mult - 1.0)
+entropy_mult = 1.0 + math.max(0.0, entropy_avg - 0.40) * 0.75
+long_edge_bias = clamp_float((long_edge_ema - 0.50) * edge_bias_strength, -0.15, 0.15)
+short_edge_bias = clamp_float((short_edge_ema - 0.50) * edge_bias_strength, -0.15, 0.15)
+final_buy_thr = threshold_buy * strict_mult * entropy_mult * (1.0 - long_edge_bias)
+final_sell_thr = threshold_sell * strict_mult * entropy_mult * (1.0 - short_edge_bias)
+
+regime_dampener = regime_range and not is_compression ? 0.82 : 1.0
+consensus_boost = 0.75 + consensus * 0.50
+htf_component = use_htf_confirm ? htf_bias * htf_weight : 0.0
+meta_signal_raw = useNeuralNet ? (Raw_Meta_Signal + htf_component) * regime_dampener * consensus_boost : ai1_proxy
+adaptive_alpha = clamp_float(smoothing_floor + consensus * 0.35 + (eff_ratio * 0.20) - (noise_index * 0.15), smoothing_floor, 0.90)
+var float Meta_Signal = 0.0
+Meta_Signal := use_adaptive_smoothing ? nz(Meta_Signal[1], meta_signal_raw) + adaptive_alpha * (meta_signal_raw - nz(Meta_Signal[1], meta_signal_raw)) : meta_signal_raw
+
+trend_score = clamp_float(adx_val / 50.0, 0.0, 1.0)
+htf_score = use_htf_confirm ? clamp_float((htf_bias + 1.0) / 2.0, 0.0, 1.0) : 0.5
+quality_raw = 100.0 * (consensus * 0.32 + trend_score * 0.24 + eff_ratio * 0.20 + htf_score * 0.12 + math.max(long_edge_ema, short_edge_ema) * 0.12)
+sig_quality_score = regime_range and not is_compression ? quality_raw * 0.90 : quality_raw
+
+threshold_span = math.max(math.abs(final_buy_thr), math.abs(final_sell_thr))
+signal_power = threshold_span != 0 ? clamp_float(math.abs(Meta_Signal) / threshold_span, 0.0, 1.5) : 0.0
+confidence_val = clamp_float(signal_power * 0.45 + (sig_quality_score / 100.0) * 0.30 + consensus * 0.15 + eff_ratio * 0.10, 0.0, 1.0) * 100.0
+
+noise_limit = clamp_float(0.78 - (noise_sensitivity - 1.0) * 0.18, 0.35, 0.85)
+consensus_limit = clamp_float(0.22 + (noise_sensitivity - 1.0) * 0.08, 0.18, 0.55)
+
+var int last_signal_bar = -10000
+bars_since_sig = bar_index - last_signal_bar
+is_cooldown_active = bars_since_sig < cooldown_bars
+
+raw_buy_sig = ta.crossover(Meta_Signal, final_buy_thr)
+raw_sell_sig = ta.crossunder(Meta_Signal, final_sell_thr)
+buy_persistence_ok = signal_persistence <= 1 or ta.sum(Meta_Signal > Meta_Signal[1] ? 1.0 : 0.0, signal_persistence) >= signal_persistence
+sell_persistence_ok = signal_persistence <= 1 or ta.sum(Meta_Signal < Meta_Signal[1] ? 1.0 : 0.0, signal_persistence) >= signal_persistence
+
+filter_trend_long = not use_trend_filter or is_uptrend
+filter_trend_short = not use_trend_filter or is_downtrend
+filter_regime_check = not use_regime_filter or regime_trend or (is_compression and consensus > 0.55 and math.abs(Meta_Signal) > 0.20)
+filter_quality_check = sig_quality_score >= min_quality_score
+filter_noise_check = noise_index <= noise_limit
+filter_consensus_check = consensus >= consensus_limit
+filter_momentum_buy = Meta_Signal > Meta_Signal[1]
+filter_momentum_sell = Meta_Signal < Meta_Signal[1]
+filter_htf_long = not use_htf_confirm or htf_bias >= -0.10
+filter_htf_short = not use_htf_confirm or htf_bias <= 0.10
+filter_state_check = current_ai_state != STATE_FROZEN
+filter_ready_check = is_ready
+
+valid_buy = raw_buy_sig and buy_persistence_ok and filter_ready_check and filter_trend_long and filter_regime_check and filter_quality_check and filter_noise_check and filter_consensus_check and filter_momentum_buy and filter_htf_long and filter_state_check and not is_cooldown_active
+valid_sell = raw_sell_sig and sell_persistence_ok and filter_ready_check and filter_trend_short and filter_regime_check and filter_quality_check and filter_noise_check and filter_consensus_check and filter_momentum_sell and filter_htf_short and filter_state_check and not is_cooldown_active
+
+if valid_buy or valid_sell
+    last_signal_bar := bar_index
+
+// ==================================================
+// === 8. RISK / EXECUTION MODEL
+// ==================================================
+high_vol_mult = is_volatility ? high_vol_stop_buffer : 1.0
+position_scale = use_conf_scaling ? calc_position_scale(state_risk_mult, confidence_val, sig_quality_score) : 1.0
+
+var float entry_price = na
+var float sl_level = na
+var float tp_level = na
+var float be_level = na
+var string last_side = "NONE"
+
+if valid_buy
+    sl_dist = calc_risk_dist(rm_mode, atr_val, close, risk_val) * high_vol_mult
+    tp_dist = sl_dist * reward_ratio
+    entry_price := close
+    sl_level := close - sl_dist
+    tp_level := close + tp_dist
+    be_level := close + sl_dist
+    last_side := "BUY"
+
+if valid_sell
+    sl_dist = calc_risk_dist(rm_mode, atr_val, close, risk_val) * high_vol_mult
+    tp_dist = sl_dist * reward_ratio
+    entry_price := close
+    sl_level := close + sl_dist
+    tp_level := close - tp_dist
+    be_level := close - sl_dist
+    last_side := "SELL"
+
+// ==================================================
+// === 9. VISUALS
+// ==================================================
+fib141 = plot(showfib ? 141.0 : na, "Fib 141", color = color.new(color.blue, 75))
+fib100 = plot(showfib ? 100.0 : na, "Fib 100", color = color.new(color.blue, 75))
+fib618 = plot(showfib ? 61.8 : na, "Fib 61.8", color = color.new(color.blue, 75))
+fib500 = plot(showfib ? 50.0 : na, "Fib 50", color = color.new(color.blue, 75))
+fib382 = plot(showfib ? 38.2 : na, "Fib 38.2", color = color.new(color.red, 75))
+fib236 = plot(showfib ? 23.6 : na, "Fib 23.6", color = color.new(color.blue, 75))
+fib000 = plot(showfib ? 0.0 : na, "Fib 0", color = color.new(color.blue, 75))
+
+line_eot2_a = plot(q3, color = color.new(osccol2, 55), linewidth = 1, title = "Quotient 1 (EOT2)")
+line_eot2_b = plot(q4, color = color.new(osccol2, 55), linewidth = 1, title = "Quotient 2 (EOT2)")
+fill(line_eot2_a, line_eot2_b, color = color.new(osccol22, 90))
+
+line_boom = plot(showdboom ? q6 : na, color = color.new(color.red, 0), linewidth = 1, title = "Downward Boom")
+line_yellow = plot(q5, color = color.new(osccol3, 0), linewidth = 1, title = "Yellow Line")
+
+highUsePivot = fixnan(ta.pivothigh(q1, leftBars, rightBars)[1])
+lowUsePivot = fixnan(ta.pivotlow(q1, leftBars, rightBars)[1])
+plot(toggleBreaks ? highUsePivot : na, color = color.red, linewidth = 1, offset = -(rightBars + 1), title = "Resistance")
+plot(toggleBreaks ? lowUsePivot : na, color = color.blue, linewidth = 1, offset = -(rightBars + 1), title = "Support")
+
+var int drag = 0
+if Quotient1 <= -1.0
+    drag += 1
+if ta.crossover(Quotient1, -0.9)
+    drag := 0
+
+cross = ta.crossover(q1, trigger) ? 1 : 0
+main_osc_color = cross == 1 ? color.new(#00ffaa, 0) : drag >= dragno ? color.purple : Quotient1 <= -0.8 ? color.yellow : color.red
+plot(q1, color = main_osc_color, linewidth = 2, title = "Main Oscillator", trackprice = true)
+plot(trigger, color = trigcol, linewidth = 2, title = "Trigger Line")
+
+plot(show_meta_plot ? Meta_Signal : na, "Meta Signal", color = color.new(color.aqua, 0), linewidth = 2)
+plot(show_meta_plot ? final_buy_thr : na, "Dynamic Buy Threshold", color = color.new(color.green, 45), linewidth = 1)
+plot(show_meta_plot ? final_sell_thr : na, "Dynamic Sell Threshold", color = color.new(color.red, 45), linewidth = 1)
+plot(show_meta_plot ? 0.0 : na, "Meta Zero", color = color.new(color.gray, 80))
+
+plotshape(showentry and showlongs and valid_buy, title = "AI Buy", text = "BUY", style = shape.labelup, location = location.bottom, color = color.new(color.green, 0), textcolor = color.white, size = size.small)
+plotshape(showentry and showshorts and valid_sell, title = "AI Sell", text = "SELL", style = shape.labeldown, location = location.top, color = color.new(color.red, 0), textcolor = color.white, size = size.small)
+
+plotchar(show_debug and raw_buy_sig and not filter_trend_long, "Trend Filter Long", "T", location.bottom, color.gray, size = size.tiny)
+plotchar(show_debug and raw_sell_sig and not filter_trend_short, "Trend Filter Short", "T", location.top, color.gray, size = size.tiny)
+plotchar(show_debug and (raw_buy_sig or raw_sell_sig) and not filter_quality_check, "Quality Filter", "Q", location.bottom, color.orange, size = size.tiny)
+plotchar(show_debug and (raw_buy_sig or raw_sell_sig) and not filter_noise_check, "Noise Filter", "N", location.bottom, color.yellow, size = size.tiny)
+plotchar(show_debug and current_ai_state == STATE_FROZEN, "Frozen", "F", location.bottom, color.blue, size = size.tiny)
+
+bg_col = not useNeuralNet ? na : wm1_norm > wm2_norm ? color.new(color.purple, 94) : color.new(color.blue, 94)
+bgcolor(current_ai_state == STATE_FROZEN ? color.new(color.gray, 90) : bg_col, title = "AI Background")
+
+plot(Meta_Signal, "Meta Signal Value", display = display.none)
+plot(confidence_val, "Confidence Value", display = display.none)
+plot(sig_quality_score, "Quality Score", display = display.none)
+plot(position_scale, "Position Scale", display = display.none)
+
+// ==================================================
+// === 10. DASHBOARD
+// ==================================================
+table_pos = tablePosInput == "Top Left" ? position.top_left : tablePosInput == "Bottom Right" ? position.bottom_right : tablePosInput == "Bottom Left" ? position.bottom_left : position.top_right
+table_size = textSizeInput == "Tiny" ? size.tiny : textSizeInput == "Normal" ? size.normal : size.small
+var table dashboard = table.new(table_pos, 4, 10, bgcolor = color.new(color.black, 35), border_width = 1)
+
+if barstate.islast and useNeuralNet
+    table.cell(dashboard, 0, 0, "DAZAY PRO v6 ELITE", text_color = color.white, bgcolor = color.new(color.blue, 35), text_size = table_size)
+    table.merge_cells(dashboard, 0, 0, 3, 0)
+
+    table.cell(dashboard, 0, 1, "Conf", text_color = color.silver, text_size = table_size)
+    table.cell(dashboard, 1, 1, str.tostring(confidence_val, "#.0") + "%", text_color = confidence_val >= 70 ? color.lime : confidence_val >= 50 ? color.orange : color.red, text_size = table_size)
+    table.cell(dashboard, 2, 1, "Side", text_color = color.silver, text_size = table_size)
+    table.cell(dashboard, 3, 1, last_side, text_color = last_side == "BUY" ? color.lime : last_side == "SELL" ? color.red : color.gray, text_size = table_size)
+
+    table.cell(dashboard, 0, 2, "Entry", text_color = color.silver, text_size = table_size)
+    table.cell(dashboard, 1, 2, str.tostring(entry_price, format.mintick), text_color = color.white, text_size = table_size)
+    table.cell(dashboard, 2, 2, "R:R", text_color = color.silver, text_size = table_size)
+    table.cell(dashboard, 3, 2, "1:" + str.tostring(reward_ratio, "#.1"), text_color = color.white, text_size = table_size)
+
+    table.cell(dashboard, 0, 3, "SL", text_color = color.silver, text_size = table_size)
+    table.cell(dashboard, 1, 3, str.tostring(sl_level, format.mintick), text_color = color.red, text_size = table_size)
+    table.cell(dashboard, 2, 3, "TP", text_color = color.silver, text_size = table_size)
+    table.cell(dashboard, 3, 3, str.tostring(tp_level, format.mintick), text_color = color.lime, text_size = table_size)
+
+    table.cell(dashboard, 0, 4, "BE", text_color = color.silver, text_size = table_size)
+    table.cell(dashboard, 1, 4, str.tostring(be_level, format.mintick), text_color = color.aqua, text_size = table_size)
+    table.cell(dashboard, 2, 4, "Mode", text_color = color.silver, text_size = table_size)
+    table.cell(dashboard, 3, 4, rm_mode, text_color = color.yellow, text_size = table_size)
+
+    regime_txt = is_compression ? "SQUEEZE" : (regime_trend ? (is_uptrend ? "TREND UP" : "TREND DOWN") : "RANGE")
+    regime_col = is_compression ? color.orange : regime_trend ? color.aqua : color.gray
+    table.cell(dashboard, 0, 5, "Regime", text_color = color.silver, text_size = table_size)
+    table.cell(dashboard, 1, 5, regime_txt, text_color = regime_col, text_size = table_size)
+    table.cell(dashboard, 2, 5, "ADX", text_color = color.silver, text_size = table_size)
+    table.cell(dashboard, 3, 5, str.tostring(adx_val, "#.0"), text_color = color.white, text_size = table_size)
+
+    state_col = current_ai_state == STATE_HEALTHY ? color.lime : current_ai_state == STATE_ADAPTING ? color.yellow : current_ai_state == STATE_DEGRADED ? color.orange : color.blue
+    table.cell(dashboard, 0, 6, "State", text_color = color.silver, text_size = table_size)
+    table.cell(dashboard, 1, 6, state_text(current_ai_state), text_color = state_col, text_size = table_size)
+    table.cell(dashboard, 2, 6, "Entropy", text_color = color.silver, text_size = table_size)
+    table.cell(dashboard, 3, 6, str.tostring(entropy_avg, "#.00"), text_color = entropy_avg > entropy_limit ? color.red : color.white, text_size = table_size)
+
+    table.cell(dashboard, 0, 7, "Acc", text_color = color.silver, text_size = table_size)
+    table.cell(dashboard, 1, 7, str.tostring(ai_accuracy_ema * 100.0, "#.0") + "%", text_color = ai_accuracy_ema >= 0.55 ? color.lime : ai_accuracy_ema >= 0.45 ? color.yellow : color.red, text_size = table_size)
+    table.cell(dashboard, 2, 7, "QScore", text_color = color.silver, text_size = table_size)
+    table.cell(dashboard, 3, 7, str.tostring(sig_quality_score, "#.0"), text_color = sig_quality_score >= min_quality_score ? color.white : color.gray, text_size = table_size)
+
+    table.cell(dashboard, 0, 8, "Size", text_color = color.silver, text_size = table_size)
+    table.cell(dashboard, 1, 8, str.tostring(position_scale * 100.0, "#") + "%", text_color = position_scale >= 1.0 ? color.lime : color.orange, text_size = table_size)
+    table.cell(dashboard, 2, 8, "HTF", text_color = color.silver, text_size = table_size)
+    table.cell(dashboard, 3, 8, str.tostring(htf_bias, "#.00"), text_color = htf_bias > 0 ? color.lime : htf_bias < 0 ? color.red : color.gray, text_size = table_size)
+
+    trend_txt = use_trend_filter ? (is_uptrend ? "FILTER BULL" : (is_downtrend ? "FILTER BEAR" : "FILTER FLAT")) : "NO TREND FILTER"
+    trend_txt := trend_txt + " | L:" + str.tostring(long_edge_ema * 100.0, "#") + " S:" + str.tostring(short_edge_ema * 100.0, "#")
+    table.cell(dashboard, 0, 9, trend_txt, text_color = color.gray, text_size = table_size)
+    table.merge_cells(dashboard, 0, 9, 3, 9)
+
+// ==================================================
+// === 11. ALERTS
+// ==================================================
+regime_label = regime_trend ? "TREND" : is_compression ? "SQUEEZE" : "RANGE"
+alert_msg_buy = "{\"type\":\"BUY\",\"price\":" + str.tostring(close) + ",\"sl\":" + str.tostring(sl_level) + ",\"tp\":" + str.tostring(tp_level) + ",\"be\":" + str.tostring(be_level) + ",\"conf\":" + str.tostring(confidence_val, "#.00") + ",\"quality\":" + str.tostring(sig_quality_score, "#.00") + ",\"size_scale\":" + str.tostring(position_scale, "#.000") + ",\"htf_bias\":" + str.tostring(htf_bias, "#.000") + ",\"long_edge\":" + str.tostring(long_edge_ema, "#.000") + ",\"short_edge\":" + str.tostring(short_edge_ema, "#.000") + ",\"state\":\"" + state_text(current_ai_state) + "\",\"regime\":\"" + regime_label + "\"}"
+alert_msg_sell = "{\"type\":\"SELL\",\"price\":" + str.tostring(close) + ",\"sl\":" + str.tostring(sl_level) + ",\"tp\":" + str.tostring(tp_level) + ",\"be\":" + str.tostring(be_level) + ",\"conf\":" + str.tostring(confidence_val, "#.00") + ",\"quality\":" + str.tostring(sig_quality_score, "#.00") + ",\"size_scale\":" + str.tostring(position_scale, "#.000") + ",\"htf_bias\":" + str.tostring(htf_bias, "#.000") + ",\"long_edge\":" + str.tostring(long_edge_ema, "#.000") + ",\"short_edge\":" + str.tostring(short_edge_ema, "#.000") + ",\"state\":\"" + state_text(current_ai_state) + "\",\"regime\":\"" + regime_label + "\"}"
+
+alertcondition(valid_buy, title = "DAZAY AI Buy", message = "DAZAY AI BUY")
+alertcondition(valid_sell, title = "DAZAY AI Sell", message = "DAZAY AI SELL")
+
+if valid_buy
+    alert(alert_msg_buy, alert.freq_once_per_bar_close)
+if valid_sell
+    alert(alert_msg_sell, alert.freq_once_per_bar_close)

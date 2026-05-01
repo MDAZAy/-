@@ -1,0 +1,85 @@
+@page "/vehicles"
+@inject ApiClient Api
+@inject SessionState Session
+@inject NavigationManager Navigation
+
+<MudGrid>
+    <MudItem xs="12" md="4">
+        <MudPaper Class="content-card pa-6">
+            <MudText Typo="Typo.h5">Добавить автомобиль</MudText>
+            <MudTextField @bind-Value="_request.Make" Label="Марка" Variant="Variant.Outlined" Class="mt-4" />
+            <MudTextField @bind-Value="_request.Model" Label="Модель" Variant="Variant.Outlined" />
+            <MudNumericField T="int" @bind-Value="_request.Year" Label="Год" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_request.Plate_Number" Label="Госномер" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_request.Color" Label="Цвет" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_request.Vin" Label="VIN" Variant="Variant.Outlined" />
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mt-4">@_error</MudAlert>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" FullWidth="true" OnClick="SaveAsync">Сохранить</MudButton>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="8">
+        <MudPaper Class="content-card pa-6">
+            <MudText Typo="Typo.h5">Мои автомобили</MudText>
+            <MudTable Items="_vehicles" Dense="true" Hover="true" Class="mt-4">
+                <HeaderContent>
+                    <MudTh>Марка</MudTh>
+                    <MudTh>Модель</MudTh>
+                    <MudTh>Год</MudTh>
+                    <MudTh>Номер</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Make</MudTd>
+                    <MudTd>@context.Model</MudTd>
+                    <MudTd>@context.Year</MudTd>
+                    <MudTd>@context.Plate_Number</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private readonly VehicleRequest _request = new();
+    private readonly List<VehicleResponse> _vehicles = [];
+    private string _error = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Session.InitializeAsync();
+        if (!Session.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login", true);
+            return;
+        }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _vehicles.Clear();
+        _vehicles.AddRange(await Api.GetVehiclesAsync());
+    }
+
+    private async Task SaveAsync()
+    {
+        try
+        {
+            _error = string.Empty;
+            await Api.CreateVehicleAsync(_request);
+            _request.Make = string.Empty;
+            _request.Model = string.Empty;
+            _request.Plate_Number = string.Empty;
+            _request.Color = string.Empty;
+            _request.Vin = string.Empty;
+            _request.Year = DateTime.UtcNow.Year;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+}

@@ -14,3 +14,6 @@ bot-python/.mypy_cache/
 
 backend-go/.cache/
 *.log
+backend/.cache/
+frontend/bin/
+frontend/obj/

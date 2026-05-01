@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "prompt": "Write Lua code that sums an array of integers and prints the result."
+  },
+  {
+    "id": 2,
+    "prompt": "Напиши Lua-скрипт, который считает количество элементов в таблице и печатает число."
+  },
+  {
+    "id": 3,
+    "prompt": "Write Lua code that filters even numbers from an array."
+  },
+  {
+    "id": 4,
+    "prompt": "Напиши Lua-функцию для обращения строки."
+  },
+  {
+    "id": 5,
+    "prompt": "Write Lua code that initializes wf variables and reads wf.vars['name']."
+  },
+  {
+    "id": 6,
+    "prompt": "Напиши Lua-код с использованием _utils.array для трех значений."
+  },
+  {
+    "id": 7,
+    "prompt": "Write Lua code that parses a simple comma-separated string into a table."
+  },
+  {
+    "id": 8,
+    "prompt": "Напиши Lua-скрипт, который считает сумму чисел от 1 до 100."
+  },
+  {
+    "id": 9,
+    "prompt": "Write a Lua function that returns the maximum value from an array."
+  },
+  {
+    "id": 10,
+    "prompt": "Напиши Lua-код, который печатает только уникальные элементы массива."
+  }
+]

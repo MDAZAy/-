@@ -1,0 +1,44 @@
+@page "/history"
+@inject ApiClient Api
+@inject SessionState Session
+@inject NavigationManager Navigation
+
+<MudPaper Class="content-card pa-6">
+    <MudText Typo="Typo.h4">История записей</MudText>
+    <MudText Class="mt-2 muted-text">Все созданные бронирования клиента с локальным временем сервиса.</MudText>
+
+    <MudTable Items="_appointments" Dense="true" Hover="true" Class="mt-4">
+        <HeaderContent>
+            <MudTh>Номер</MudTh>
+            <MudTh>Услуга</MudTh>
+            <MudTh>Автомобиль</MudTh>
+            <MudTh>Механик</MudTh>
+            <MudTh>Время</MudTh>
+            <MudTh>Статус</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Confirmation_Number</MudTd>
+            <MudTd>@context.Service.Name</MudTd>
+            <MudTd>@context.Vehicle.Make @context.Vehicle.Model</MudTd>
+            <MudTd>@context.Mechanic_Name</MudTd>
+            <MudTd>@context.Start_Time_Local</MudTd>
+            <MudTd>@context.Status</MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private readonly List<AppointmentResponse> _appointments = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Session.InitializeAsync();
+        if (!Session.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login", true);
+            return;
+        }
+
+        _appointments.AddRange(await Api.GetMyAppointmentsAsync());
+    }
+}

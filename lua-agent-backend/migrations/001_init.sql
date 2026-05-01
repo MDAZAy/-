@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE IF NOT EXISTS sessions (
     id UUID PRIMARY KEY,
     last_prompt TEXT NOT NULL DEFAULT '',

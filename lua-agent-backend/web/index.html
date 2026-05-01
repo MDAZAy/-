@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lua Agent Demo</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <p class="eyebrow">Local AI Demo</p>
+      <h1>Lua Agent Backend</h1>
+      <p class="lead">Локальная генерация Lua-кода через Ollama с валидацией, self-correction и историей запросов.</p>
+    </section>
+
+    <section class="panel">
+      <label for="prompt">Задача</label>
+      <textarea id="prompt" rows="8">Напиши Lua-скрипт, который суммирует массив чисел и печатает результат.</textarea>
+      <div class="actions">
+        <button id="generate">Сгенерировать</button>
+        <button id="health" class="secondary">Проверить health</button>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="panel">
+        <h2>Ответ</h2>
+        <pre id="result">Ожидание запроса...</pre>
+      </article>
+      <article class="panel">
+        <h2>Health</h2>
+        <pre id="health-result">Ожидание проверки...</pre>
+      </article>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

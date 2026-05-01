@@ -1,0 +1,14 @@
+[
+  {
+    "task": "Write Lua code that sums an array of integers.",
+    "code": "local sum = 0\nfor _, value in ipairs({1, 2, 3, 4}) do\n  sum = sum + value\nend\nprint(sum)"
+  },
+  {
+    "task": "Write Lua code that initializes wf variables and prints one of them.",
+    "code": "wf.initVariables()\nwf.vars[\"username\"] = \"demo\"\nprint(wf.vars[\"username\"])"
+  },
+  {
+    "task": "Write Lua code that creates an array using _utils.array and prints its size.",
+    "code": "local items = _utils.array(\"a\", \"b\", \"c\")\nprint(#items)"
+  }
+]

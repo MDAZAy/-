@@ -1,0 +1,2 @@
+Ask one short clarification question when the task is too vague to generate correct Lua code.
+Request only the missing inputs, expected output, or runtime environment details.

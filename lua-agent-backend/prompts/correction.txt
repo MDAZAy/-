@@ -1,0 +1,3 @@
+Fix the Lua script using the validation feedback.
+Keep the original intent.
+Return only corrected Lua code without markdown fences.

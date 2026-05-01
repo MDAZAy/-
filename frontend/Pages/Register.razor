@@ -1,0 +1,52 @@
+@page "/register"
+@inject ApiClient Api
+@inject SessionState Session
+@inject NavigationManager Navigation
+
+<MudPaper Class="content-card pa-8 auth-card">
+    <MudText Typo="Typo.h3">Регистрация клиента</MudText>
+    <MudText Class="mt-2 muted-text">После создания аккаунта вы сразу попадёте в личный кабинет.</MudText>
+
+    <MudGrid Class="mt-4">
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_request.Full_Name" Label="ФИО" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_request.Phone" Label="Телефон" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_request.Email" Label="Email" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_request.Password" Label="Пароль" Variant="Variant.Outlined" InputType="InputType.Password" />
+        </MudItem>
+    </MudGrid>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mt-4">@_error</MudAlert>
+    }
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-6" OnClick="SubmitAsync">Зарегистрироваться</MudButton>
+    <MudButton Variant="Variant.Text" Color="Color.Secondary" Class="mt-6 ml-2" OnClick="() => Navigation.NavigateTo("/login")">У меня уже есть аккаунт</MudButton>
+</MudPaper>
+
+@code {
+    private readonly AuthRequest _request = new();
+    private string _error = string.Empty;
+
+    private async Task SubmitAsync()
+    {
+        try
+        {
+            _error = string.Empty;
+            var response = await Api.RegisterAsync(_request);
+            await Session.SetSessionAsync(response);
+            Navigation.NavigateTo("/cabinet", true);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+}

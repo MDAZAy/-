@@ -1,0 +1,60 @@
+@page "/login"
+@inject ApiClient Api
+@inject SessionState Session
+@inject NavigationManager Navigation
+
+<MudGrid Class="hero-grid">
+    <MudItem xs="12" md="6">
+        <MudPaper Class="hero-panel hero-copy pa-8">
+            <MudText Typo="Typo.h2">Онлайн-запись без звонков и ожидания</MudText>
+            <MudText Class="mt-4">Проверяйте слоты в реальном времени, управляйте автомобилями и храните всю историю обслуживания в одном кабинете.</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="hero-panel pa-8">
+            <MudText Typo="Typo.h4">Вход в систему</MudText>
+            <MudText Class="mt-2 muted-text">Тестовый клиент: `user@example.com / User123`</MudText>
+            <MudText Class="mb-6 muted-text">Тестовый админ: `admin@example.com / Admin123`</MudText>
+
+            <MudForm>
+                <MudTextField @bind-Value="_request.Email" Label="Email" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="_request.Password" Label="Пароль" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                @if (!string.IsNullOrWhiteSpace(_error))
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true" Class="mt-4">@_error</MudAlert>
+                }
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-6" OnClick="SubmitAsync">Войти</MudButton>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary" FullWidth="true" Class="mt-2" OnClick="() => Navigation.NavigateTo("/register")">Создать аккаунт</MudButton>
+            </MudForm>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private readonly AuthRequest _request = new();
+    private string _error = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Session.InitializeAsync();
+        if (Session.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/cabinet", true);
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        try
+        {
+            _error = string.Empty;
+            var response = await Api.LoginAsync(_request);
+            await Session.SetSessionAsync(response);
+            Navigation.NavigateTo("/cabinet", true);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+}

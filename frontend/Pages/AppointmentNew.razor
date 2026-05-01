@@ -1,0 +1,134 @@
+@page "/appointments/new"
+@inject ApiClient Api
+@inject SessionState Session
+@inject NavigationManager Navigation
+
+<MudGrid>
+    <MudItem xs="12" md="5">
+        <MudPaper Class="content-card pa-6">
+            <MudText Typo="Typo.h5">Новая запись</MudText>
+            <MudSelect T="string" Label="Услуга" @bind-Value="_serviceId" Variant="Variant.Outlined" Class="mt-4">
+                @foreach (var service in _services)
+                {
+                    <MudSelectItem T="string" Value="@service.Id">@service.Name (@service.Duration_Minutes мин)</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="string" Label="Автомобиль" @bind-Value="_vehicleId" Variant="Variant.Outlined">
+                @foreach (var vehicle in _vehicles)
+                {
+                    <MudSelectItem T="string" Value="@vehicle.Id">@vehicle.Make @vehicle.Model (@vehicle.Plate_Number)</MudSelectItem>
+                }
+            </MudSelect>
+            <MudDatePicker Label="Дата" @bind-Date="_selectedDate" DateFormat="yyyy-MM-dd" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_notes" Label="Комментарий" Lines="3" Variant="Variant.Outlined" />
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-4" FullWidth="true" OnClick="LoadSlotsAsync">Показать доступные слоты</MudButton>
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mt-4">@_error</MudAlert>
+            }
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="7">
+        <MudPaper Class="content-card pa-6">
+            <MudText Typo="Typo.h5">Доступные слоты</MudText>
+            @if (_slots.Count == 0)
+            {
+                <MudText Class="mt-4 muted-text">Выберите услугу и дату, чтобы загрузить расписание.</MudText>
+            }
+            else
+            {
+                <MudList T="SlotResponse" Dense="true" Class="slot-list mt-4">
+                    @foreach (var slot in _slots)
+                    {
+                        <MudListItem T="SlotResponse" Class="slot-item" OnClick="() => SelectSlot(slot)">
+                            <MudText>@slot.Start_Time_Local</MudText>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+            @if (_selectedSlot is not null)
+            {
+                <MudAlert Severity="Severity.Success" Class="mt-4">Выбран слот: @_selectedSlot.Start_Time_Local</MudAlert>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" FullWidth="true" OnClick="BookAsync">Подтвердить запись</MudButton>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private readonly List<ServiceResponse> _services = [];
+    private readonly List<VehicleResponse> _vehicles = [];
+    private readonly List<SlotResponse> _slots = [];
+    private string _serviceId = string.Empty;
+    private string _vehicleId = string.Empty;
+    private DateTime? _selectedDate = DateTime.Today.AddDays(1);
+    private string _notes = string.Empty;
+    private SlotResponse? _selectedSlot;
+    private string _error = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Session.InitializeAsync();
+        if (!Session.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login", true);
+            return;
+        }
+
+        _services.AddRange(await Api.GetServicesAsync());
+        _vehicles.AddRange(await Api.GetVehiclesAsync());
+        _serviceId = _services.FirstOrDefault()?.Id ?? string.Empty;
+        _vehicleId = _vehicles.FirstOrDefault()?.Id ?? string.Empty;
+    }
+
+    private async Task LoadSlotsAsync()
+    {
+        try
+        {
+            _error = string.Empty;
+            _selectedSlot = null;
+            _slots.Clear();
+            if (_selectedDate is null || string.IsNullOrWhiteSpace(_serviceId))
+            {
+                _error = "Нужно выбрать услугу и дату.";
+                return;
+            }
+            var response = await Api.GetAvailableSlotsAsync(_selectedDate.Value.ToString("yyyy-MM-dd"), _serviceId);
+            _slots.AddRange(response.Slots);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private void SelectSlot(SlotResponse slot)
+    {
+        _selectedSlot = slot;
+    }
+
+    private async Task BookAsync()
+    {
+        if (_selectedSlot is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _error = string.Empty;
+            await Api.CreateAppointmentAsync(new AppointmentRequest
+            {
+                Vehicle_Id = _vehicleId,
+                Service_Id = _serviceId,
+                Start_Time = _selectedSlot.Start_Time_Utc,
+                Notes = _notes
+            });
+            Navigation.NavigateTo("/history", true);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+}
