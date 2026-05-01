@@ -22,7 +22,7 @@ public sealed class SessionState(BrowserStorageService storage)
         {
             Id = await storage.GetItemAsync("user_id") ?? string.Empty,
             Email = await storage.GetItemAsync("user_email") ?? string.Empty,
-            Full_Name = await storage.GetItemAsync("user_full_name") ?? string.Empty,
+            FullName = await storage.GetItemAsync("user_full_name") ?? string.Empty,
             Phone = await storage.GetItemAsync("user_phone") ?? string.Empty,
             Role = await storage.GetItemAsync("user_role") ?? string.Empty
         };
@@ -32,8 +32,8 @@ public sealed class SessionState(BrowserStorageService storage)
 
     public async Task SetSessionAsync(AuthResponse response)
     {
-        AccessToken = response.Access_Token;
-        RefreshToken = response.Refresh_Token;
+        AccessToken = response.AccessToken;
+        RefreshToken = response.RefreshToken;
         CurrentUser = response.User;
         IsInitialized = true;
 
@@ -41,7 +41,7 @@ public sealed class SessionState(BrowserStorageService storage)
         await storage.SetItemAsync("refresh_token", RefreshToken);
         await storage.SetItemAsync("user_id", CurrentUser.Id);
         await storage.SetItemAsync("user_email", CurrentUser.Email);
-        await storage.SetItemAsync("user_full_name", CurrentUser.Full_Name);
+        await storage.SetItemAsync("user_full_name", CurrentUser.FullName);
         await storage.SetItemAsync("user_phone", CurrentUser.Phone);
         await storage.SetItemAsync("user_role", CurrentUser.Role);
     }

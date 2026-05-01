@@ -10,7 +10,7 @@
             <MudTextField @bind-Value="_request.Make" Label="Марка" Variant="Variant.Outlined" Class="mt-4" />
             <MudTextField @bind-Value="_request.Model" Label="Модель" Variant="Variant.Outlined" />
             <MudNumericField T="int" @bind-Value="_request.Year" Label="Год" Variant="Variant.Outlined" />
-            <MudTextField @bind-Value="_request.Plate_Number" Label="Госномер" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_request.PlateNumber" Label="Госномер" Variant="Variant.Outlined" />
             <MudTextField @bind-Value="_request.Color" Label="Цвет" Variant="Variant.Outlined" />
             <MudTextField @bind-Value="_request.Vin" Label="VIN" Variant="Variant.Outlined" />
             @if (!string.IsNullOrWhiteSpace(_error))
@@ -34,7 +34,7 @@
                     <MudTd>@context.Make</MudTd>
                     <MudTd>@context.Model</MudTd>
                     <MudTd>@context.Year</MudTd>
-                    <MudTd>@context.Plate_Number</MudTd>
+                    <MudTd>@context.PlateNumber</MudTd>
                 </RowTemplate>
             </MudTable>
         </MudPaper>
@@ -71,7 +71,7 @@
             await Api.CreateVehicleAsync(_request);
             _request.Make = string.Empty;
             _request.Model = string.Empty;
-            _request.Plate_Number = string.Empty;
+            _request.PlateNumber = string.Empty;
             _request.Color = string.Empty;
             _request.Vin = string.Empty;
             _request.Year = DateTime.UtcNow.Year;

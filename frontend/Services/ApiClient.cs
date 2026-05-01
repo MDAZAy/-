@@ -1,5 +1,4 @@
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
@@ -9,6 +8,7 @@ public sealed class ApiClient(HttpClient httpClient, SessionState session)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         PropertyNameCaseInsensitive = true
     };
 
@@ -48,6 +48,19 @@ public sealed class ApiClient(HttpClient httpClient, SessionState session)
     public async Task<DashboardResponse> GetDashboardAsync() =>
         await SendAsync<DashboardResponse>(HttpMethod.Get, "api/v1/admin/dashboard");
 
+    public async Task LogoutAsync()
+    {
+        if (!session.IsAuthenticated || string.IsNullOrWhiteSpace(session.RefreshToken))
+        {
+            return;
+        }
+
+        await SendAsync<object>(HttpMethod.Post, "api/v1/auth/logout", new
+        {
+            refresh_token = session.RefreshToken
+        });
+    }
+
     private async Task<T> SendAsync<T>(HttpMethod method, string url, object? payload = null, string? idempotencyKey = null)
     {
         await session.InitializeAsync();
@@ -64,7 +77,7 @@ public sealed class ApiClient(HttpClient httpClient, SessionState session)
         }
         if (payload is not null)
         {
-            request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+            request.Content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
         }
 
         using var response = await httpClient.SendAsync(request);

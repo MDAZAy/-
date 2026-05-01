@@ -16,7 +16,7 @@ else
     <MudGrid>
         <MudItem xs="12" md="8">
             <MudPaper Class="content-card feature-card pa-8">
-                <MudText Typo="Typo.h3">Добро пожаловать, @_profile.Full_Name</MudText>
+                <MudText Typo="Typo.h3">Добро пожаловать, @_profile.FullName</MudText>
                 <MudText Class="mt-3">Здесь видно профиль, статус аккаунта и ближайшие записи. Все времена уже отданы в `Europe/Helsinki`, а в базе backend хранит их в UTC.</MudText>
                 <MudChip T="string" Value="@_profile.Role" Color="Color.Primary" Class="mt-4">Роль: @_profile.Role</MudChip>
                 <MudText Class="mt-4">@_profile.Email</MudText>
@@ -44,10 +44,10 @@ else
                         <MudTh>Статус</MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd>@context.Confirmation_Number</MudTd>
+                        <MudTd>@context.ConfirmationNumber</MudTd>
                         <MudTd>@context.Service.Name</MudTd>
                         <MudTd>@context.Vehicle.Make @context.Vehicle.Model</MudTd>
-                        <MudTd>@context.Start_Time_Local</MudTd>
+                        <MudTd>@context.StartTimeLocal</MudTd>
                         <MudTd>@context.Status</MudTd>
                     </RowTemplate>
                 </MudTable>

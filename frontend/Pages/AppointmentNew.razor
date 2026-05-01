@@ -10,13 +10,13 @@
             <MudSelect T="string" Label="Услуга" @bind-Value="_serviceId" Variant="Variant.Outlined" Class="mt-4">
                 @foreach (var service in _services)
                 {
-                    <MudSelectItem T="string" Value="@service.Id">@service.Name (@service.Duration_Minutes мин)</MudSelectItem>
+                    <MudSelectItem T="string" Value="@service.Id">@service.Name (@service.DurationMinutes мин)</MudSelectItem>
                 }
             </MudSelect>
             <MudSelect T="string" Label="Автомобиль" @bind-Value="_vehicleId" Variant="Variant.Outlined">
                 @foreach (var vehicle in _vehicles)
                 {
-                    <MudSelectItem T="string" Value="@vehicle.Id">@vehicle.Make @vehicle.Model (@vehicle.Plate_Number)</MudSelectItem>
+                    <MudSelectItem T="string" Value="@vehicle.Id">@vehicle.Make @vehicle.Model (@vehicle.PlateNumber)</MudSelectItem>
                 }
             </MudSelect>
             <MudDatePicker Label="Дата" @bind-Date="_selectedDate" DateFormat="yyyy-MM-dd" Variant="Variant.Outlined" />
@@ -41,14 +41,14 @@
                     @foreach (var slot in _slots)
                     {
                         <MudListItem T="SlotResponse" Class="slot-item" OnClick="() => SelectSlot(slot)">
-                            <MudText>@slot.Start_Time_Local</MudText>
+                            <MudText>@slot.StartTimeLocal</MudText>
                         </MudListItem>
                     }
                 </MudList>
             }
             @if (_selectedSlot is not null)
             {
-                <MudAlert Severity="Severity.Success" Class="mt-4">Выбран слот: @_selectedSlot.Start_Time_Local</MudAlert>
+                <MudAlert Severity="Severity.Success" Class="mt-4">Выбран слот: @_selectedSlot.StartTimeLocal</MudAlert>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" FullWidth="true" OnClick="BookAsync">Подтвердить запись</MudButton>
             }
         </MudPaper>
@@ -119,9 +119,9 @@
             _error = string.Empty;
             await Api.CreateAppointmentAsync(new AppointmentRequest
             {
-                Vehicle_Id = _vehicleId,
-                Service_Id = _serviceId,
-                Start_Time = _selectedSlot.Start_Time_Utc,
+                VehicleId = _vehicleId,
+                ServiceId = _serviceId,
+                StartTime = _selectedSlot.StartTimeUtc,
                 Notes = _notes
             });
             Navigation.NavigateTo("/history", true);

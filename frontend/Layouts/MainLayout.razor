@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @inject SessionState Session
+@inject ApiClient Api
 
 <MudThemeProvider Theme="@_theme" />
 <MudDialogProvider />
@@ -77,6 +78,14 @@
 
     private async Task LogoutAsync()
     {
+        try
+        {
+            await Api.LogoutAsync();
+        }
+        catch
+        {
+        }
+
         await Session.ClearAsync();
         Navigation.NavigateTo("/login");
     }

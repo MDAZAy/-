@@ -17,25 +17,25 @@ else
         <MudItem xs="12" md="3">
             <MudPaper Class="content-card pa-6 stat-block">
                 <MudText Typo="Typo.h6">Пользователи</MudText>
-                <MudText Typo="Typo.h3">@_dashboard.Users_Count</MudText>
+                <MudText Typo="Typo.h3">@_dashboard.UsersCount</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" md="3">
             <MudPaper Class="content-card pa-6 stat-block">
                 <MudText Typo="Typo.h6">Авто</MudText>
-                <MudText Typo="Typo.h3">@_dashboard.Vehicles_Count</MudText>
+                <MudText Typo="Typo.h3">@_dashboard.VehiclesCount</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" md="3">
             <MudPaper Class="content-card pa-6 stat-block">
                 <MudText Typo="Typo.h6">Записи</MudText>
-                <MudText Typo="Typo.h3">@_dashboard.Appointments_Count</MudText>
+                <MudText Typo="Typo.h3">@_dashboard.AppointmentsCount</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" md="3">
             <MudPaper Class="content-card pa-6 stat-block">
                 <MudText Typo="Typo.h6">Механики</MudText>
-                <MudText Typo="Typo.h3">@_dashboard.Mechanics_Count</MudText>
+                <MudText Typo="Typo.h3">@_dashboard.MechanicsCount</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="12">
@@ -44,18 +44,18 @@ else
                 <MudTable Items="_appointments" Dense="true" Hover="true" Class="mt-4">
                     <HeaderContent>
                         <MudTh>Номер</MudTh>
-                        <MudTh>Клиент</MudTh>
+                        <MudTh>Госномер</MudTh>
                         <MudTh>Услуга</MudTh>
                         <MudTh>Авто</MudTh>
                         <MudTh>Время</MudTh>
                         <MudTh>Статус</MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd>@context.Confirmation_Number</MudTd>
-                        <MudTd>@context.Vehicle.Plate_Number</MudTd>
+                        <MudTd>@context.ConfirmationNumber</MudTd>
+                        <MudTd>@context.Vehicle.PlateNumber</MudTd>
                         <MudTd>@context.Service.Name</MudTd>
                         <MudTd>@context.Vehicle.Make @context.Vehicle.Model</MudTd>
-                        <MudTd>@context.Start_Time_Local</MudTd>
+                        <MudTd>@context.StartTimeLocal</MudTd>
                         <MudTd>@context.Status</MudTd>
                     </RowTemplate>
                 </MudTable>
